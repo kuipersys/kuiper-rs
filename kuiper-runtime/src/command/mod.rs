@@ -4,6 +4,7 @@ pub mod get;
 pub mod list;
 pub mod reconcile;
 pub mod set;
+pub mod validate;
 pub mod version;
 
 use anyhow::Ok;

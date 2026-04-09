@@ -18,6 +18,7 @@ use command::{
     list::ListCommand,
     reconcile::ReconcileCommand,
     set::SetCommand,
+    validate::SchemaValidationCommand,
     version::VersionCommand,
     CommandExecutor,
 };
@@ -45,6 +46,10 @@ impl KuiperRuntimeBuilder {
         executor.register_handler(
             "set",
             Arc::new(SetCommand::new(shared_store.clone(), Some(registry.clone()))),
+        );
+        executor.register_handler(
+            "set",
+            Arc::new(SchemaValidationCommand::new(registry.clone())),
         );
         executor.register_handler("delete", Arc::new(DeleteCommand::new(shared_store.clone())));
         executor.register_handler("list", Arc::new(ListCommand::new(shared_store.clone())));

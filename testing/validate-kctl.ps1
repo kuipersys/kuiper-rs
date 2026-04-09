@@ -18,6 +18,7 @@ $RepoRoot    = Split-Path -Parent $ScriptDir
 $Kctl        = Join-Path $RepoRoot 'target\debug\kctl.exe'
 $FixturesDir = Join-Path $ScriptDir 'fixtures'
 $StoreDir    = Join-Path $ScriptDir 'store'
+$TempDir     = Join-Path $ScriptDir 'temp'
 
 # ── Environment ───────────────────────────────────────────────────────────────
 
@@ -28,6 +29,11 @@ if (Test-Path $StoreDir) {
     Remove-Item -Recurse -Force $StoreDir
 }
 New-Item -ItemType Directory -Path $StoreDir | Out-Null
+
+if (Test-Path $TempDir) {
+    Remove-Item -Recurse -Force $TempDir
+}
+New-Item -ItemType Directory -Path $TempDir | Out-Null
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -77,6 +83,33 @@ function Assert-Failure {
     } else {
         Write-Host "  FAIL  $TestName (expected non-zero exit, got 0)" -ForegroundColor Red
         Write-Host "        output: $($output -join ' | ')" -ForegroundColor DarkGray
+        $script:Failed++
+    }
+}
+
+function Assert-FailureContaining {
+    param(
+        [string]$TestName,
+        [string[]]$KctlArgs,
+        [string]$ErrorContains
+    )
+    $output = (Invoke-Kctl $KctlArgs) -join "`n"
+    $exitCode = $LASTEXITCODE
+
+    $rejected = $exitCode -ne 0
+    $hasMessage = $output -match [regex]::Escape($ErrorContains)
+
+    if ($rejected -and $hasMessage) {
+        Write-Host "  PASS  $TestName (rejected: $ErrorContains)" -ForegroundColor Green
+        $script:Passed++
+    } elseif (-not $rejected) {
+        Write-Host "  FAIL  $TestName (expected rejection but command succeeded)" -ForegroundColor Red
+        Write-Host "        output: $output" -ForegroundColor DarkGray
+        $script:Failed++
+    } else {
+        Write-Host "  FAIL  $TestName (rejected but wrong error)" -ForegroundColor Red
+        Write-Host "        expected : $ErrorContains" -ForegroundColor DarkGray
+        Write-Host "        actual   : $output" -ForegroundColor DarkGray
         $script:Failed++
     }
 }
@@ -213,25 +246,94 @@ $reservedPayload = @{
     spec       = @{ group = "evil.example.com"; names = @{ kind = "Evil"; singular = "evil"; plural = "evils" }; scope = "Namespace"; versions = @() }
 } | ConvertTo-Json -Compress
 
-$reservedFile = Join-Path $StoreDir 'evil-rd.json'
+$reservedFile = Join-Path $TempDir 'evil-rd.json'
 $reservedPayload | Set-Content $reservedFile
 
-Assert-Failure "unprivileged 'set' rejected for reserved apiVersion group" `
-    @('set', '-f', $reservedFile, '-n', 'global')
+Assert-FailureContaining "unprivileged 'set' rejected for reserved apiVersion group" `
+    @('set', '-f', $reservedFile, '-n', 'global') `
+    -ErrorContains 'Forbidden'
 
 # Attempt to write a resource with a reserved UID prefix via unprivileged 'set'.
+# The spec is intentionally valid (passes schema) so the UID guard — not schema validation —
+# is the gate being tested here.
 $reservedUidPayload = @{
     apiVersion = "compute.cloud-api.dev/v1alpha1"
     kind       = "VirtualMachine"
     metadata   = @{ name = "spoofed-vm"; namespace = "default"; uid = "00000000-0000-0000-0000-000000000099" }
-    spec       = @{}
+    spec       = @{ cpuCores = 2; memoryGb = 8; image = "ubuntu-22.04" }
 } | ConvertTo-Json -Compress
 
-$reservedUidFile = Join-Path $StoreDir 'spoofed-uid.json'
+$reservedUidFile = Join-Path $TempDir 'spoofed-uid.json'
 $reservedUidPayload | Set-Content $reservedUidFile
 
-Assert-Failure "unprivileged 'set' rejected for reserved UID prefix" `
-    @('set', '-f', $reservedUidFile, '-n', 'default')
+Assert-FailureContaining "unprivileged 'set' rejected for reserved UID prefix" `
+    @('set', '-f', $reservedUidFile, '-n', 'default') `
+    -ErrorContains 'Forbidden'
+
+# ── Section: Schema validation ────────────────────────────────────────────────
+
+Write-Host ""
+Write-Host "--- Schema validation (VirtualMachine) ---" -ForegroundColor Yellow
+
+# Valid resource — all required fields present and correct types.
+$validVm = @{
+    apiVersion = "compute.cloud-api.dev/v1alpha1"
+    kind       = "VirtualMachine"
+    metadata   = @{ name = "vm-schema-valid"; namespace = "default" }
+    spec       = @{ cpuCores = 2; memoryGb = 8; image = "ubuntu-22.04" }
+} | ConvertTo-Json -Compress
+
+$validVmFile = Join-Path $TempDir 'vm-schema-valid.json'
+$validVm | Set-Content $validVmFile
+
+Assert-Success "schema-valid VirtualMachine accepted" `
+    @('set', '-f', $validVmFile) `
+    -Contains 'vm-schema-valid'
+
+# Missing required field 'image'.
+$missingField = @{
+    apiVersion = "compute.cloud-api.dev/v1alpha1"
+    kind       = "VirtualMachine"
+    metadata   = @{ name = "vm-bad-missing"; namespace = "default" }
+    spec       = @{ cpuCores = 2; memoryGb = 8 }
+} | ConvertTo-Json -Compress
+
+$missingFieldFile = Join-Path $TempDir 'vm-bad-missing.json'
+$missingField | Set-Content $missingFieldFile
+
+Assert-FailureContaining "schema-invalid VirtualMachine rejected (missing required field)" `
+    @('set', '-f', $missingFieldFile) `
+    -ErrorContains 'schema validation'
+
+# Wrong type: cpuCores is a string instead of integer.
+$badType = @{
+    apiVersion = "compute.cloud-api.dev/v1alpha1"
+    kind       = "VirtualMachine"
+    metadata   = @{ name = "vm-bad-type"; namespace = "default" }
+    spec       = @{ cpuCores = "two"; memoryGb = 8; image = "ubuntu-22.04" }
+} | ConvertTo-Json -Compress
+
+$badTypeFile = Join-Path $TempDir 'vm-bad-type.json'
+$badType | Set-Content $badTypeFile
+
+Assert-FailureContaining "schema-invalid VirtualMachine rejected (wrong type)" `
+    @('set', '-f', $badTypeFile) `
+    -ErrorContains 'schema validation'
+
+# Additional property not in schema.
+$extraProp = @{
+    apiVersion = "compute.cloud-api.dev/v1alpha1"
+    kind       = "VirtualMachine"
+    metadata   = @{ name = "vm-bad-extra"; namespace = "default" }
+    spec       = @{ cpuCores = 2; memoryGb = 8; image = "ubuntu-22.04"; unknownField = "oops" }
+} | ConvertTo-Json -Compress
+
+$extraPropFile = Join-Path $TempDir 'vm-bad-extra.json'
+$extraProp | Set-Content $extraPropFile
+
+Assert-FailureContaining "schema-invalid VirtualMachine rejected (additional property)" `
+    @('set', '-f', $extraPropFile) `
+    -ErrorContains 'schema validation'
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
