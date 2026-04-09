@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Mutex};
 
 use async_trait::async_trait;
+use anyhow::anyhow;
 
 use super::{StoreContainer, StoreKey, StoreOperation, StoreResult, StoreValue, TransactionalKeyValueStore};
 
@@ -18,38 +19,40 @@ impl InMemoryStore {
 
 #[async_trait]
 impl TransactionalKeyValueStore for InMemoryStore {
-    async fn list(
-        &self,
-        container: &StoreContainer,
-        key_prefix: &StoreKey,
-    ) -> StoreResult<Option<Vec<StoreValue>>> {
+    async fn list_keys(&self, container: &str, key_prefix: Option<&str>) -> StoreResult<Vec<StoreKey>> {
         let data = self.data.lock().unwrap();
         let container_data = data.get(container);
 
         if let Some(map) = container_data {
-            let result = map
-                .iter()
-                .filter(|(k, _)| k.starts_with(key_prefix))
-                .map(|(_, v)| v.clone())
-                .collect::<Vec<_>>();
-            return Ok(Some(result));
+            let result = match key_prefix {
+                Some(prefix) => map
+                    .keys()
+                    .filter(|k| k.starts_with(prefix))
+                    .cloned()
+                    .collect::<Vec<_>>(),
+                None => map.keys().cloned().collect::<Vec<_>>(),
+            };
+            return Ok(result);
         }
 
-        Ok(None)
+        Ok(Vec::new())
     }
 
-    async fn get(&self, container: &StoreContainer, key: &StoreKey) -> StoreResult<Option<StoreValue>> {
+    async fn get(&self, container: &str, key: &str) -> StoreResult<StoreValue> {
         let data = self.data.lock().unwrap();
-        Ok(data.get(container).and_then(|m| m.get(key)).cloned())
+        data.get(container)
+            .and_then(|m| m.get(key))
+            .cloned()
+            .ok_or_else(|| anyhow!("Key '{}' not found in container '{}'", key, container))
     }
 
-    async fn put(&self, container: &StoreContainer, key: StoreKey, value: StoreValue) -> StoreResult<()> {
+    async fn put(&self, container: &str, key: &str, value: StoreValue) -> StoreResult<StoreValue> {
         let mut data = self.data.lock().unwrap();
-        data.entry(container.clone()).or_default().insert(key, value);
-        Ok(())
+        let container_map = data.entry(container.to_string()).or_default();
+        Ok(container_map.insert(key.to_string(), value).unwrap_or_default())
     }
 
-    async fn delete(&self, container: &StoreContainer, key: &StoreKey) -> StoreResult<()> {
+    async fn delete(&self, container: &str, key: &str) -> StoreResult<()> {
         let mut data = self.data.lock().unwrap();
         if let Some(container_map) = data.get_mut(container) {
             container_map.remove(key);
@@ -74,24 +77,24 @@ impl TransactionalKeyValueStore for InMemoryStore {
         Ok(())
     }
 
-    async fn new_container(&self, container: StoreContainer) -> StoreResult<()> {
+    async fn new_container(&self, container: &str) -> StoreResult<()> {
         let mut data = self.data.lock().unwrap();
-        if data.contains_key(&container) {
-            return Err(format!("Container '{}' already exists", container).into());
+        if data.contains_key(container) {
+            return Err(anyhow!("Container '{}' already exists", container));
         }
-        data.insert(container, HashMap::new());
+        data.insert(container.to_string(), HashMap::new());
         Ok(())
     }
 
-    async fn delete_container(&self, container: &StoreContainer) -> StoreResult<()> {
+    async fn delete_container(&self, container: &str) -> StoreResult<()> {
         let mut data = self.data.lock().unwrap();
         if data.remove(container).is_none() {
-            return Err(format!("Container '{}' does not exist", container).into());
+            return Err(anyhow!("Container '{}' does not exist", container));
         }
         Ok(())
     }
 
-    async fn container_exists(&self, container: &StoreContainer) -> StoreResult<bool> {
+    async fn container_exists(&self, container: &str) -> StoreResult<bool> {
         let data = self.data.lock().unwrap();
         Ok(data.contains_key(container))
     }
@@ -103,29 +106,30 @@ impl TransactionalKeyValueStore for InMemoryStore {
 
     async fn rename_container(
         &self,
-        old: StoreContainer,
-        new: StoreContainer,
+        old: &str,
+        new: &str,
     ) -> StoreResult<()> {
         let mut data = self.data.lock().unwrap();
         if !data.contains_key(old) {
-            return Err(format!("Container '{}' does not exist", old).into());
+            return Err(anyhow!("Container '{}' does not exist", old));
         }
-        if data.contains_key(&new) {
-            return Err(format!("Target container '{}' already exists", new).into());
+        if data.contains_key(new) {
+            return Err(anyhow!("Target container '{}' already exists", new));
         }
 
         let content = data.remove(old).unwrap();
-        data.insert(new, content);
+        data.insert(new.to_string(), content);
         Ok(())
     }
 
-    async fn clear_container(&self, container: &StoreContainer) -> StoreResult<()> {
+    async fn clear_container(&self, container: &str) -> StoreResult<()> {
         let mut data = self.data.lock().unwrap();
         if let Some(container_map) = data.get_mut(container) {
             container_map.clear();
             Ok(())
         } else {
-            Err(format!("Container '{}' does not exist", container).into())
+            Err(anyhow!("Container '{}' does not exist", container))
         }
     }
 }
+

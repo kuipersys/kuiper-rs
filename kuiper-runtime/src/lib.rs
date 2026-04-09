@@ -4,11 +4,12 @@ mod config;
 #[cfg(test)]
 mod tests;
 
+pub use config::KuiperConfig;
+
 use std::sync::Arc;
 
 use command::{commands::{DeleteCommand, EchoCommand, GetCommand, ListCommand, SetCommand, VersionCommand}, reconcile::ReconcileCommand, CommandExecutor};
-use config::KuiperConfig;
-use kuiper_runtime_sdk::{command::{CommandContext, CommandDispatcher, CommandHandler, CommandResult, CommandType}, data::TransactionalKeyValueStore};
+use kuiper_runtime_sdk::{command::{CommandContext, CommandDispatcher, CommandHandler, CommandResult}, data::TransactionalKeyValueStore};
 use tokio::sync::RwLock;
 
 pub struct KuiperRuntimeBuilder {
@@ -28,7 +29,7 @@ impl KuiperRuntimeBuilder {
         executor.register_handler("reconcile", Arc::new(ReconcileCommand::new(shared_store.clone())));
 
         Self {
-            config: KuiperConfig {},
+            config: KuiperConfig::default(),
             executor
         }
     }
@@ -39,13 +40,8 @@ impl KuiperRuntimeBuilder {
         handler: Arc<dyn CommandHandler>
     ) -> &mut Self
     {
-        if handler.get_type() == CommandType::Internal {
-            panic!("Cannot register internal command handler: {}", name);
-        }
-
         self.executor.register_handler(name, handler);
-
-        return self;
+        self
     }
 
     pub fn build(self) -> KuiperRuntime {

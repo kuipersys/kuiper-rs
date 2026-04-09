@@ -5,12 +5,13 @@ use std::sync::Arc;
 
 use clap::Parser;
 use cmd::Cli;
-use kuiper_runtime::KuiperRuntimeBuilder;
+use kuiper_runtime::{KuiperConfig, KuiperRuntimeBuilder};
 use kuiper_runtime_sdk::data::file_system_store::FileSystemStore;
 #[tokio::main]
 
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let store = FileSystemStore::new("c:\\cloud-api\\kuiper\\store").unwrap();
+    let config = KuiperConfig::from_env();
+    let store = FileSystemStore::new(&config.store_path).unwrap();
     let builder = KuiperRuntimeBuilder::new(Arc::new(tokio::sync::RwLock::new(store)));
     let runtime = builder.build();
     

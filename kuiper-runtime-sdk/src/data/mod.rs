@@ -1,5 +1,8 @@
 // pub mod in_memory_store;
+pub mod in_memory_store;
 pub mod file_system_store;
+
+pub use in_memory_store::InMemoryStore;
 
 use async_trait::async_trait;
 

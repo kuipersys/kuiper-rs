@@ -5,15 +5,16 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread;
-use actix_web::{delete, get, post, put, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{get, put, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::middleware::Logger;
 use actors::models::ServerMessage;
 use actors::ws_handler;
 use commands::observer::SetObserverCommand;
 use dashmap::DashMap;
-use kuiper_runtime::{KuiperRuntime, KuiperRuntimeBuilder};
+use kuiper_runtime::{KuiperConfig, KuiperRuntime, KuiperRuntimeBuilder};
 use kuiper_runtime_sdk::command::CommandContext;
 use kuiper_runtime_sdk::data::file_system_store::FileSystemStore;
+use kuiper_runtime_sdk::error::KuiperError;
 use routing::ResourceDescriptor;
 use serde_json::Value;
 use services::HostedService;
@@ -37,6 +38,17 @@ mod actors;
 
 type ClientId = String;
 type SubscriberMap = Arc<DashMap<ClientId, UnboundedSender<ServerMessage>>>;
+
+fn kuiper_error_response(e: anyhow::Error) -> HttpResponse {
+    if let Some(kuiper_err) = e.downcast_ref::<KuiperError>() {
+        return match kuiper_err {
+            KuiperError::NotFound(msg) => HttpResponse::NotFound().body(msg.clone()),
+            KuiperError::Conflict(msg) => HttpResponse::Conflict().body(msg.clone()),
+            KuiperError::Invalid(msg) => HttpResponse::BadRequest().body(msg.clone()),
+        };
+    }
+    HttpResponse::InternalServerError().body(e.to_string())
+}
 
 fn truncate(s: &str, max_chars: usize) -> &str {
     match s.char_indices().nth(max_chars) {
@@ -70,7 +82,7 @@ async fn version_handler(
     match runtime.execute(&mut ctx).await {
         Ok(Some(result)) => HttpResponse::Ok().json(result),
         Ok(None) => HttpResponse::NoContent().finish(),
-        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+        Err(e) => kuiper_error_response(e),
     }
 }
 
@@ -110,11 +122,11 @@ async fn api_put_handler(
 
     let result = rt.execute(&mut ctx).await;
 
-    if result.is_err() {
-        return HttpResponse::InternalServerError().body(format!("Error executing command: {}", result.err().unwrap()));
+    match result {
+        Ok(Some(value)) => HttpResponse::Ok().json(value),
+        Ok(None) => HttpResponse::Ok().finish(),
+        Err(e) => kuiper_error_response(e),
     }
-
-    HttpResponse::Ok().json(result.unwrap())
 }
 
 async fn api_handler(
@@ -134,16 +146,17 @@ async fn api_handler(
         return HttpResponse::BadRequest().body(format!("Invalid path: {}, {}", path, descriptor.err().unwrap()));
     }
 
-    // if get, put, delete, it's ok - otherwise, return 405
     let method = req.method();
-    if method != "GET" && method != "PUT" && method != "DELETE" {
-        return HttpResponse::MethodNotAllowed().body(format!("Method {} not allowed", method));
-    }
+    let command_name = match method.as_str() {
+        "GET" => "get",
+        "DELETE" => "delete",
+        _ => return HttpResponse::MethodNotAllowed().body(format!("Method {} not allowed", method)),
+    };
 
     let descriptor = descriptor.unwrap();
     
     let mut ctx = CommandContext {
-        command_name: "get".to_string(),
+        command_name: command_name.to_string(),
         parameters: HashMap::new(),
         metadata: HashMap::new(),
         activity_id: uuid::Uuid::new_v4(),
@@ -156,10 +169,13 @@ async fn api_handler(
     let result = rt.execute(&mut ctx).await;
 
     if result.is_err() {
-        return HttpResponse::InternalServerError().body(format!("Error executing command: {}", result.err().unwrap()));
+        return kuiper_error_response(result.err().unwrap());
     }
 
-    HttpResponse::Ok().json(result.unwrap())
+    match command_name {
+        "delete" => HttpResponse::NoContent().finish(),
+        _ => HttpResponse::Ok().json(result.unwrap()),
+    }
 }
 
 // https://github.com/rousan/rust-web-frameworks-benchmark
@@ -171,7 +187,8 @@ async fn main() -> std::io::Result<()> {
     let count = thread::available_parallelism()?.get();
     tracing::info!(">> Number of Threads: {}", count);
 
-    let store = FileSystemStore::new("c:\\cloud-api\\kuiper\\store").unwrap();
+    let config = KuiperConfig::from_env();
+    let store = FileSystemStore::new(&config.store_path).unwrap();
     let shared_store = Arc::new(tokio::sync::RwLock::new(store));
     let subscribers: SubscriberMap = Arc::new(DashMap::new());
 
