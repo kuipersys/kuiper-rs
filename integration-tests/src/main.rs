@@ -484,7 +484,13 @@ async fn test_multiple_resources_list() -> TestResult {
                 let mut p = HashMap::new();
                 p.insert(
                     "value".to_string(),
-                    json!({ "name": format!("resource-{}", i) }),
+                    json!({
+                        "apiVersion": "v1",
+                        "kind": "TestResource",
+                        "metadata": {
+                            "name": format!("resource-{}", i)
+                        }
+                    }),
                 );
                 p.insert(
                     "resource".to_string(),
