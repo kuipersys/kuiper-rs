@@ -14,9 +14,9 @@ pub fn print_output(value: &Value, format: OutputFormat, pretty: bool) {
 
         OutputFormat::Yaml => {
             if pretty {
-                println!("{}", serde_yml::to_string(value).unwrap());
+                println!("{}", yaml_serde::to_string(value).unwrap());
             } else {
-                println!("{}", serde_yml::to_string(value).unwrap());
+                println!("{}", yaml_serde::to_string(value).unwrap());
             }
         }
 
@@ -41,7 +41,7 @@ fn print_human_readable(value: &Value, indent: usize) {
             }
         }
         Value::Array(arr) => {
-            for (i, v) in arr.iter().enumerate() {
+            for (_i, v) in arr.iter().enumerate() {
                 print!("{:indent$}- ", "", indent = indent);
                 match v {
                     Value::Object(_) | Value::Array(_) => {
