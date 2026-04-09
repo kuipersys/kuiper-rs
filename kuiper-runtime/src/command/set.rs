@@ -74,7 +74,11 @@ impl ExecutableCommand for SetCommand {
         // Guard: the reserved UID prefix is exclusive to internal system resources.
         if !ctx.is_internal
             && !obj.metadata.uid.is_nil()
-            && obj.metadata.uid.to_string().starts_with(RESERVED_UID_PREFIX)
+            && obj
+                .metadata
+                .uid
+                .to_string()
+                .starts_with(RESERVED_UID_PREFIX)
         {
             return Err(KuiperError::Forbidden(
                 "UIDs beginning with '00000000-0000-0000-0000-' are reserved for internal system resources."
@@ -173,5 +177,3 @@ impl ExecutableCommand for SetCommand {
         Ok(Some(result))
     }
 }
-
-

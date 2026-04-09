@@ -13,8 +13,7 @@ use kuiper_runtime_sdk::{
 use tokio::sync::RwLock;
 
 use crate::constants::{
-    resource_key, GLOBAL_NAMESPACE, RESOURCE_CONTAINER, SYSTEM_API_VERSION,
-    SYSTEM_EXTENSION_GROUP,
+    resource_key, GLOBAL_NAMESPACE, RESOURCE_CONTAINER, SYSTEM_API_VERSION, SYSTEM_EXTENSION_GROUP,
 };
 
 /// The resource-path prefix used to list / store all `ResourceDefinition` objects.

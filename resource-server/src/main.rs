@@ -119,7 +119,7 @@ async fn api_put_handler(
         metadata: HashMap::new(),
         activity_id: uuid::Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
-    is_internal: false,
+        is_internal: false,
     };
 
     // Read the body of the request
@@ -180,7 +180,7 @@ async fn api_handler(rt: web::Data<Arc<KuiperRuntime>>, req: HttpRequest) -> imp
         metadata: HashMap::new(),
         activity_id: uuid::Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
-    is_internal: false,
+        is_internal: false,
     };
 
     ctx.parameters.insert(

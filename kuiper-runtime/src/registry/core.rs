@@ -18,10 +18,7 @@ use crate::constants::{GLOBAL_NAMESPACE, SYSTEM_API_VERSION, SYSTEM_EXTENSION_GR
 /// must be registered in the registry *before* the validation layer can permit
 /// new `ResourceDefinition` resources to be written.
 pub(super) fn core_resource_definitions() -> Vec<ResourceDefinition> {
-    vec![
-        resource_definition_definition(),
-        namespace_definition(),
-    ]
+    vec![resource_definition_definition(), namespace_definition()]
 }
 
 /// Reserved UID prefix — only core system resources may carry a UID beginning

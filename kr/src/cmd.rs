@@ -159,13 +159,13 @@ fn parse_key_val(s: &str) -> Result<(String, String), String> {
 impl Command {
     pub fn into_context(self) -> CommandContext {
         let (verb, args, is_internal) = match self {
-            Command::Echo(args)    => ("echo",    args, false),
-            Command::Get(args)     => ("get",     args, false),
-            Command::List(args)    => ("list",    args, false),
-            Command::Delete(args)  => ("delete",  args, false),
-            Command::Set(args)     => ("set",     args, false),
+            Command::Echo(args) => ("echo", args, false),
+            Command::Get(args) => ("get", args, false),
+            Command::List(args) => ("list", args, false),
+            Command::Delete(args) => ("delete", args, false),
+            Command::Set(args) => ("set", args, false),
             Command::Version(args) => ("version", args, false),
-            Command::Define(args)  => ("set",     args, true),
+            Command::Define(args) => ("set", args, true),
             _ => panic!("Unsupported command"),
         };
 
@@ -222,8 +222,7 @@ impl Command {
                                 .pointer("/metadata/namespace")
                                 .and_then(|v| v.as_str())
                             {
-                                metadata
-                                    .insert("namespace".to_string(), ns.to_string());
+                                metadata.insert("namespace".to_string(), ns.to_string());
                             }
                         }
 

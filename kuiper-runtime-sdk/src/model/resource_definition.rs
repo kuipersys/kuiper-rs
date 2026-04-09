@@ -87,11 +87,8 @@ impl ResourceDefinition {
             .iter()
             .filter(|v| v.enabled)
             .map(|v| {
-                let k = format!(
-                    "{}/{}/{}",
-                    self.spec.group, self.spec.names.kind, v.name
-                )
-                .to_lowercase();
+                let k = format!("{}/{}/{}", self.spec.group, self.spec.names.kind, v.name)
+                    .to_lowercase();
                 (k, v.clone())
             })
             .collect()

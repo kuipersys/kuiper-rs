@@ -12,15 +12,9 @@ pub use registry::ResourceRegistry;
 use std::sync::Arc;
 
 use command::{
-    delete::DeleteCommand,
-    echo::EchoCommand,
-    get::GetCommand,
-    list::ListCommand,
-    reconcile::ReconcileCommand,
-    set::SetCommand,
-    validate::SchemaValidationCommand,
-    version::VersionCommand,
-    CommandExecutor,
+    delete::DeleteCommand, echo::EchoCommand, get::GetCommand, list::ListCommand,
+    reconcile::ReconcileCommand, set::SetCommand, validate::SchemaValidationCommand,
+    version::VersionCommand, CommandExecutor,
 };
 use kuiper_runtime_sdk::{
     command::{CommandContext, CommandDispatcher, CommandHandler, CommandResult},
@@ -45,7 +39,10 @@ impl KuiperRuntimeBuilder {
         executor.register_handler("get", Arc::new(GetCommand::new(shared_store.clone())));
         executor.register_handler(
             "set",
-            Arc::new(SetCommand::new(shared_store.clone(), Some(registry.clone()))),
+            Arc::new(SetCommand::new(
+                shared_store.clone(),
+                Some(registry.clone()),
+            )),
         );
         executor.register_handler(
             "set",
