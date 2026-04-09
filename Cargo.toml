@@ -4,8 +4,9 @@ members = [
     "kuiper-runtime-sdk",
     "kuiper-runtime",
     "kctl",
-    "resource-server"
-, "integration-tests"]
+    "resource-server",
+    "integration-tests"
+]
 
 # NOTE: For FIPS Compliant tls
 # https://www.memorysafety.org/blog/rustls-with-aws-crypto-back-end-and-fips/

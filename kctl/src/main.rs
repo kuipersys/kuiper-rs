@@ -15,6 +15,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let builder = KuiperRuntimeBuilder::new(Arc::new(tokio::sync::RwLock::new(store)));
     let runtime = builder.build();
 
+    if let Err(e) = runtime.initialize().await {
+        eprintln!("Warning: runtime initialization failed: {}", e);
+    }
+
     let cli = Cli::parse();
     let mut context = cli.command.into_context();
 
@@ -38,6 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(err) => {
             eprintln!("Error executing command: {}", err);
+            std::process::exit(1);
         }
     }
 

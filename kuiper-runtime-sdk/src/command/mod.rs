@@ -11,6 +11,12 @@ pub struct CommandContext {
     pub metadata: HashMap<String, String>,
     pub activity_id: Uuid,
 
+    /// Marks the command as originating from an internal / privileged pathway.
+    /// This flag is never serialized so it cannot be injected via external payloads.
+    /// When `true`, guards that restrict system-reserved groups or UIDs are bypassed.
+    #[serde(skip)]
+    pub is_internal: bool,
+
     #[serde(skip)]
     pub cancellation_token: CancellationToken,
 }

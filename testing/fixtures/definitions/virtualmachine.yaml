@@ -1,0 +1,17 @@
+apiVersion: ext.api.cloud-api.dev/v1alpha1
+kind: ResourceDefinition
+metadata:
+  name: virtualmachines
+  namespace: global
+spec:
+  group: compute.cloud-api.dev
+  scope: Namespace
+  names:
+    kind: VirtualMachine
+    singular: virtualmachine
+    plural: virtualmachines
+    shortNames:
+      - vm
+  versions:
+    - name: v1alpha1
+      enabled: true

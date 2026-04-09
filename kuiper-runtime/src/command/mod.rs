@@ -6,12 +6,6 @@ pub mod reconcile;
 pub mod set;
 pub mod version;
 
-pub(super) const RESOURCE_CONTAINER: &str = "resource";
-
-pub(super) fn resource_key(namespace: &str, resource: Option<&str>) -> String {
-    format!("{}/{}", namespace, resource.unwrap_or("")).to_lowercase()
-}
-
 use anyhow::Ok;
 use async_trait::async_trait;
 use kuiper_runtime_sdk::command::{

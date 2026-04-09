@@ -1,0 +1,10 @@
+apiVersion: iot.cloud-api.dev/v1alpha1
+kind: Sensor
+metadata:
+  name: temperature-sensor-01
+  namespace: default
+spec:
+  type: temperature
+  unit: celsius
+  location: server-room-a
+  sampleRateSeconds: 30

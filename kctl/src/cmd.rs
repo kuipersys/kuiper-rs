@@ -5,6 +5,53 @@ use kuiper_runtime_sdk::command::CommandContext;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+/// Reads a file (JSON or YAML) and returns the content as a `serde_json::Value`.
+/// YAML files are detected by `.yaml` / `.yml` extension; everything else is
+/// assumed to be JSON.
+fn read_resource_file(path: &str) -> anyhow::Result<serde_json::Value> {
+    let raw = std::fs::read_to_string(path)
+        .map_err(|e| anyhow::anyhow!("Failed to read file '{}': {}", path, e))?;
+
+    let value: serde_json::Value = if path.ends_with(".yaml") || path.ends_with(".yml") {
+        yaml_serde::from_str(&raw)
+            .map_err(|e| anyhow::anyhow!("Failed to parse YAML file '{}': {}", path, e))?
+    } else {
+        serde_json::from_str(&raw)
+            .map_err(|e| anyhow::anyhow!("Failed to parse JSON file '{}': {}", path, e))?
+    };
+
+    Ok(value)
+}
+
+/// Derives the resource path string (`{group}/{version}/{kind}/{name}`) from a
+/// parsed `SystemObject`-shaped JSON value so `SetCommand` can store it under
+/// the right key.
+fn resource_path_from_value(value: &serde_json::Value) -> anyhow::Result<String> {
+    let api_version = value
+        .get("apiVersion")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("Missing 'apiVersion' field in resource file"))?;
+
+    let kind = value
+        .get("kind")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("Missing 'kind' field in resource file"))?;
+
+    let name = value
+        .pointer("/metadata/name")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("Missing 'metadata.name' field in resource file"))?;
+
+    // apiVersion can be either "{group}/{version}" or just "{version}"
+    let resource_path = if api_version.contains('/') {
+        format!("{}/{}/{}", api_version, kind, name)
+    } else {
+        format!("{}/{}/{}", api_version, kind, name)
+    };
+
+    Ok(resource_path)
+}
+
 #[derive(Parser, Debug)]
 #[command(name = "kctl", about = "Kuiper Control CLI")]
 pub struct Cli {
@@ -34,6 +81,9 @@ pub enum Command {
     List(CommonArgs),
     Set(CommonArgs),
     Delete(CommonArgs),
+
+    /// Register a ResourceDefinition (privileged — sets is_internal on the context).
+    Define(CommonArgs),
 
     // Config / Application Management Commands
     // Apply(CommonArgs),
@@ -108,13 +158,14 @@ fn parse_key_val(s: &str) -> Result<(String, String), String> {
 
 impl Command {
     pub fn into_context(self) -> CommandContext {
-        let (verb, args) = match self {
-            Command::Echo(args) => ("echo", args),
-            Command::Get(args) => ("get", args),
-            Command::List(args) => ("list", args),
-            Command::Delete(args) => ("delete", args),
-            Command::Set(args) => ("set", args),
-            Command::Version(args) => ("version", args),
+        let (verb, args, is_internal) = match self {
+            Command::Echo(args)    => ("echo",    args, false),
+            Command::Get(args)     => ("get",     args, false),
+            Command::List(args)    => ("list",    args, false),
+            Command::Delete(args)  => ("delete",  args, false),
+            Command::Set(args)     => ("set",     args, false),
+            Command::Version(args) => ("version", args, false),
+            Command::Define(args)  => ("set",     args, true),
             _ => panic!("Unsupported command"),
         };
 
@@ -135,12 +186,54 @@ impl Command {
 
         let mut metadata: HashMap<String, String> = args.metadata.into_iter().collect();
 
-        metadata.insert("namespace".to_string(), args.namespace);
+        metadata.insert("namespace".to_string(), args.namespace.clone());
         metadata.insert("force".to_string(), args.force.to_string());
         metadata.insert("verbose".to_string(), args.verbose.to_string());
 
-        if let Some(file) = args.file {
-            metadata.insert("file".to_string(), file);
+        // ── File loading ──────────────────────────────────────────────────────
+        // If a --file is provided and this is a set/apply-style command, read
+        // the file and inject its content as the `value` parameter.  The
+        // resource path is derived automatically from the object's apiVersion /
+        // kind / metadata.name fields so the caller does not need to supply
+        // --param resource=... separately.
+        if let Some(ref file_path) = args.file {
+            metadata.insert("file".to_string(), file_path.clone());
+
+            if (verb == "set") && !parameters.contains_key("value") {
+                match read_resource_file(file_path) {
+                    Ok(value) => {
+                        // Derive the resource path if not already supplied.
+                        if !parameters.contains_key("resource") {
+                            match resource_path_from_value(&value) {
+                                Ok(path) => {
+                                    parameters
+                                        .insert("resource".to_string(), serde_json::json!(path));
+                                }
+                                Err(e) => {
+                                    eprintln!("Warning: could not derive resource path: {}", e);
+                                }
+                            }
+                        }
+
+                        // Derive namespace from metadata.namespace if not
+                        // explicitly overridden on the command line.
+                        if args.namespace == "default" {
+                            if let Some(ns) = value
+                                .pointer("/metadata/namespace")
+                                .and_then(|v| v.as_str())
+                            {
+                                metadata
+                                    .insert("namespace".to_string(), ns.to_string());
+                            }
+                        }
+
+                        parameters.insert("value".to_string(), value);
+                    }
+                    Err(e) => {
+                        eprintln!("Error reading resource file: {}", e);
+                    }
+                }
+            }
         }
 
         CommandContext {
@@ -148,6 +241,7 @@ impl Command {
             parameters,
             metadata,
             activity_id: Uuid::new_v4(),
+            is_internal,
             cancellation_token: CancellationToken::new(),
         }
     }

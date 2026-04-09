@@ -121,17 +121,14 @@ impl TransactionalKeyValueStore for FileSystemStore {
                     if file_path.is_file() {
                         let store_key = self.fs_path_to_key(&file_path);
 
-                        if key_prefix.is_some() && store_key.starts_with(key_prefix.unwrap()) {
-                            let cleaned_key = store_key
-                                .strip_prefix(&container_prefix)
-                                .unwrap()
-                                .to_string();
-                            values.push(cleaned_key);
-                        } else {
-                            let cleaned_key = store_key
-                                .strip_prefix(&container_prefix)
-                                .unwrap()
-                                .to_string();
+                        let cleaned_key = store_key
+                            .strip_prefix(&container_prefix)
+                            .unwrap()
+                            .to_string();
+
+                        // Only include the key if no prefix filter was given,
+                        // or if the cleaned key starts with the requested prefix.
+                        if key_prefix.map_or(true, |prefix| cleaned_key.starts_with(prefix)) {
                             values.push(cleaned_key);
                         }
                     }

@@ -1,0 +1,13 @@
+apiVersion: compute.cloud-api.dev/v1alpha1
+kind: VirtualMachine
+metadata:
+  name: web-server-01
+  namespace: default
+spec:
+  cpuCores: 4
+  memoryGb: 16
+  diskGb: 100
+  image: ubuntu-22.04
+  tags:
+    - web
+    - production

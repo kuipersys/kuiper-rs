@@ -29,4 +29,8 @@ pub enum KuiperError {
     /// The request was structurally invalid.
     #[error("Invalid request: {0}")]
     Invalid(String),
+
+    /// The operation is not permitted (e.g. reserved UID prefix used by caller).
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
 }

@@ -20,7 +20,7 @@ pub struct SystemObject {
     pub extension_data: HashMap<String, Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SystemObjectMetadata {
     #[serde(rename = "name")]
     pub name: String,

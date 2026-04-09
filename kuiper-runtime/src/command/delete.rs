@@ -10,7 +10,7 @@ use kuiper_runtime_sdk::{
 };
 use tokio::sync::RwLock;
 
-use super::{resource_key, RESOURCE_CONTAINER};
+use crate::constants::{resource_key, RESOURCE_CONTAINER};
 
 pub struct DeleteCommand {
     store: Arc<RwLock<dyn TransactionalKeyValueStore>>,
