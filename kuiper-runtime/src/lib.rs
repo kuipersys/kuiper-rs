@@ -9,8 +9,13 @@ pub use config::KuiperConfig;
 use std::sync::Arc;
 
 use command::{
-    commands::{DeleteCommand, EchoCommand, GetCommand, ListCommand, SetCommand, VersionCommand},
+    delete::DeleteCommand,
+    echo::EchoCommand,
+    get::GetCommand,
+    list::ListCommand,
     reconcile::ReconcileCommand,
+    set::SetCommand,
+    version::VersionCommand,
     CommandExecutor,
 };
 use kuiper_runtime_sdk::{

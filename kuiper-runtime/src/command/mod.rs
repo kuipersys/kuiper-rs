@@ -1,6 +1,16 @@
-pub mod commands;
+pub mod delete;
+pub mod echo;
+pub mod get;
+pub mod list;
 pub mod reconcile;
-mod version;
+pub mod set;
+pub mod version;
+
+pub(super) const RESOURCE_CONTAINER: &str = "resource";
+
+pub(super) fn resource_key(namespace: &str, resource: Option<&str>) -> String {
+    format!("{}/{}", namespace, resource.unwrap_or("")).to_lowercase()
+}
 
 use anyhow::Ok;
 use async_trait::async_trait;
