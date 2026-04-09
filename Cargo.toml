@@ -52,6 +52,10 @@ opentelemetry-stdout = { version = "0.31.0", features = ["trace", "logs"] }
 opentelemetry-semantic-conventions = "0.31.0"
 opentelemetry-appender-tracing = "0.31.1"
 
+# Transitive dependency pins
+bytes = "1.11.1"
+quinn-proto = "0.11.14"
+
 # Common Libraries
 clap = { version = "4.6.0", features = ["derive"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "charset", "http2", "json"] }
