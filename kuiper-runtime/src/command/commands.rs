@@ -170,8 +170,8 @@ impl ExecutableCommand for SetCommand {
             .get_param("value")
             .context("Missing required parameter: value")?;
 
-        let mut obj: SystemObject = serde_json::from_str(&raw_value)
-            .context("Failed to parse 'value' as SystemObject")?;
+        let mut obj: SystemObject =
+            serde_json::from_str(&raw_value).context("Failed to parse 'value' as SystemObject")?;
 
         let key = resource_key(&namespace, Some(&resource));
 
@@ -199,7 +199,11 @@ impl ExecutableCommand for SetCommand {
                 // Optimistic concurrency: if the caller supplied a resourceVersion
                 // it must match what is currently stored.
                 if let Some(provided_rv) = &obj.metadata.resource_version {
-                    let stored_rv = stored_obj.metadata.resource_version.as_deref().unwrap_or("");
+                    let stored_rv = stored_obj
+                        .metadata
+                        .resource_version
+                        .as_deref()
+                        .unwrap_or("");
                     if provided_rv.as_str() != stored_rv {
                         return Err(KuiperError::Conflict(format!(
                             "resourceVersion mismatch: provided '{}', stored '{}'",
@@ -219,8 +223,7 @@ impl ExecutableCommand for SetCommand {
                     obj.metadata.uid = uuid::Uuid::new_v4();
                 }
                 if obj.metadata.creation_timestamp.is_none() {
-                    obj.metadata.creation_timestamp =
-                        Some(chrono::Utc::now().timestamp_micros());
+                    obj.metadata.creation_timestamp = Some(chrono::Utc::now().timestamp_micros());
                 }
             }
         }
@@ -237,7 +240,8 @@ impl ExecutableCommand for SetCommand {
             .await
             .context("Failed to write resource to store")?;
 
-        let result = serde_json::to_value(&obj).context("Failed to convert SystemObject to JSON")?;
+        let result =
+            serde_json::to_value(&obj).context("Failed to convert SystemObject to JSON")?;
         Ok(Some(result))
     }
 }

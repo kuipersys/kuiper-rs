@@ -1,8 +1,8 @@
 use std::sync::OnceLock;
 
 use opentelemetry::global::{self, BoxedTracer};
-use opentelemetry_sdk::trace::SdkTracerProvider;
 use opentelemetry::trace::{TraceContextExt as _, TracerProvider as _};
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use tracing::Span;
 use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 use tracing_subscriber::layer::SubscriberExt;
@@ -42,17 +42,16 @@ fn init_tracer(level: &str) {
     global::set_tracer_provider(sdk_provider);
 
     // Create a tracing layer with the configured tracer
-    let telemetry = tracing_opentelemetry::layer()
-        .with_tracer(tracer);
+    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
     // Use the tracing subscriber `Registry`, or any other subscriber
     // that impls `LookupSpan`
     Registry::default()
         .with(EnvFilter::new(level))
-        .with(tracing_subscriber::fmt::layer()
-            .with_target(true)
-            .with_thread_ids(true)
-            // .with_thread_names(true)
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_target(true)
+                .with_thread_ids(true), // .with_thread_names(true)
         )
         .with(telemetry)
         .init();

@@ -1,12 +1,15 @@
 // https://github.com/robjtede/actix-web-lab/blob/7f5ce616f063b0735fb423a441de7da872847c5c/actix-web-lab/src/catch_panic.rs
 
 use std::{
-    fmt::Debug, future::{ready, Ready}, panic::AssertUnwindSafe, rc::Rc
+    fmt::Debug,
+    future::{ready, Ready},
+    panic::AssertUnwindSafe,
+    rc::Rc,
 };
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    error
+    error,
 };
 
 use futures_util::future::LocalBoxFuture;
@@ -83,15 +86,9 @@ where
         AssertUnwindSafe(self.service.call(req))
             .catch_unwind()
             .map(move |res| match res {
-                Ok(Ok(res)) => {
-                    Ok(res)
-                },
-                Ok(Err(svc_err)) => {
-                    Err(svc_err)
-                },
-                Err(_panic_err) => {
-                    Err(error::ErrorInternalServerError("Internal Server Error"))
-                },
+                Ok(Ok(res)) => Ok(res),
+                Ok(Err(svc_err)) => Err(svc_err),
+                Err(_panic_err) => Err(error::ErrorInternalServerError("Internal Server Error")),
             })
             .boxed_local()
     }

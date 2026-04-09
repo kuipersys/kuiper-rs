@@ -1,6 +1,6 @@
 // pub mod in_memory_store;
-pub mod in_memory_store;
 pub mod file_system_store;
+pub mod in_memory_store;
 
 pub use in_memory_store::InMemoryStore;
 
@@ -18,7 +18,11 @@ pub enum StoreOperation {
 
 #[async_trait]
 pub trait TransactionalKeyValueStore: Send + Sync {
-    async fn list_keys(&self, container: &str, key_prefix: Option<&str>) -> StoreResult<Vec<StoreKey>>;
+    async fn list_keys(
+        &self,
+        container: &str,
+        key_prefix: Option<&str>,
+    ) -> StoreResult<Vec<StoreKey>>;
     async fn get(&self, container: &str, key: &str) -> StoreResult<StoreValue>;
     async fn put(&self, container: &str, key: &str, value: StoreValue) -> StoreResult<StoreValue>;
     async fn delete(&self, container: &str, key: &str) -> StoreResult<()>;
@@ -27,11 +31,7 @@ pub trait TransactionalKeyValueStore: Send + Sync {
     async fn delete_container(&self, container: &str) -> StoreResult<()>;
     async fn container_exists(&self, container: &str) -> StoreResult<bool>;
     async fn list_containers(&self) -> StoreResult<Vec<StoreContainer>>;
-    async fn rename_container(
-        &self,
-        old: &str,
-        new: &str,
-    ) -> StoreResult<()>;
+    async fn rename_container(&self, old: &str, new: &str) -> StoreResult<()>;
 
     async fn clear_container(&self, container: &str) -> StoreResult<()>;
 }
@@ -52,7 +52,8 @@ impl<'a> Transaction<'a> {
     }
 
     pub fn put(&mut self, container: StoreContainer, key: StoreKey, value: StoreValue) {
-        self.staged_ops.push(StoreOperation::Put(container, key, value));
+        self.staged_ops
+            .push(StoreOperation::Put(container, key, value));
     }
 
     pub fn delete(&mut self, container: StoreContainer, key: StoreKey) {
@@ -63,8 +64,10 @@ impl<'a> Transaction<'a> {
         if self.committed || self.staged_ops.is_empty() {
             return Ok(());
         }
-    
-        self.store.commit_transaction(std::mem::take(&mut self.staged_ops)).await?;
+
+        self.store
+            .commit_transaction(std::mem::take(&mut self.staged_ops))
+            .await?;
         self.committed = true;
         Ok(())
     }

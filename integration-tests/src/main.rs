@@ -1,16 +1,19 @@
-use std::sync::Arc;
-use std::collections::HashMap;
+use async_trait::async_trait;
 use colored::*;
 use kuiper_runtime::KuiperRuntimeBuilder;
 use kuiper_runtime_sdk::{
-    command::{CommandContext, CommandHandler, CommandResult, CommandType, ExecutableCommand, ValidationCommand, MutationCommand},
+    command::{
+        CommandContext, CommandHandler, CommandResult, CommandType, ExecutableCommand,
+        MutationCommand, ValidationCommand,
+    },
     data::InMemoryStore,
 };
 use serde_json::json;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
-use async_trait::async_trait;
-use tokio::sync::RwLock;
 
 // ============================================================================
 // Custom Test Handlers
@@ -41,7 +44,9 @@ impl CommandHandler for TestEchoHandler {
 #[async_trait]
 impl ExecutableCommand for TestEchoHandler {
     async fn execute(&self, ctx: &CommandContext) -> CommandResult {
-        let message = ctx.get_string_param("message").unwrap_or_else(|_| "hello".to_string());
+        let message = ctx
+            .get_string_param("message")
+            .unwrap_or_else(|_| "hello".to_string());
         Ok(Some(json!({ "echo": message })))
     }
 }
@@ -92,10 +97,10 @@ impl TestResult {
 
 async fn test_runtime_creation() -> TestResult {
     let start = std::time::Instant::now();
-    
+
     let store = Arc::new(RwLock::new(InMemoryStore::new()));
     let runtime = KuiperRuntimeBuilder::new(store).build();
-    
+
     let passed = true;
     TestResult::new(
         "test_runtime_creation",
@@ -148,9 +153,7 @@ async fn test_echo_command() -> TestResult {
     let result = runtime.execute(&mut ctx).await;
 
     let passed = match result {
-        Ok(Some(value)) => {
-            value.get("version").is_some()
-        }
+        Ok(Some(value)) => value.get("version").is_some(),
         _ => false,
     };
 
@@ -230,7 +233,10 @@ async fn test_set_then_get() -> TestResult {
         parameters: {
             let mut p = HashMap::new();
             p.insert("value".to_string(), test_data.clone());
-            p.insert("resource".to_string(), json!("api/v1/TestResource/my-resource"));
+            p.insert(
+                "resource".to_string(),
+                json!("api/v1/TestResource/my-resource"),
+            );
             p
         },
         metadata: {
@@ -257,7 +263,10 @@ async fn test_set_then_get() -> TestResult {
         command_name: "get".to_string(),
         parameters: {
             let mut p = HashMap::new();
-            p.insert("resource".to_string(), json!("api/v1/TestResource/my-resource"));
+            p.insert(
+                "resource".to_string(),
+                json!("api/v1/TestResource/my-resource"),
+            );
             p
         },
         metadata: {
@@ -273,7 +282,10 @@ async fn test_set_then_get() -> TestResult {
 
     let passed = match get_result {
         Ok(Some(value)) => {
-            value.get("metadata").and_then(|m| m.get("name")).and_then(|n| n.as_str())
+            value
+                .get("metadata")
+                .and_then(|m| m.get("name"))
+                .and_then(|n| n.as_str())
                 == Some("my-resource")
         }
         _ => false,
@@ -377,7 +389,10 @@ async fn test_delete_command() -> TestResult {
         parameters: {
             let mut p = HashMap::new();
             p.insert("value".to_string(), test_data);
-            p.insert("resource".to_string(), json!("api/v1/TestResource/to-delete"));
+            p.insert(
+                "resource".to_string(),
+                json!("api/v1/TestResource/to-delete"),
+            );
             p
         },
         metadata: {
@@ -396,7 +411,10 @@ async fn test_delete_command() -> TestResult {
         command_name: "delete".to_string(),
         parameters: {
             let mut p = HashMap::new();
-            p.insert("resource".to_string(), json!("api/v1/TestResource/to-delete"));
+            p.insert(
+                "resource".to_string(),
+                json!("api/v1/TestResource/to-delete"),
+            );
             p
         },
         metadata: {
@@ -553,22 +571,43 @@ async fn test_multiple_resources_list() -> TestResult {
 
 #[tokio::main]
 async fn main() {
-    println!("\n{}\n", "╔══════════════════════════════════════════════════════════╗".bright_blue());
-    println!("{}  {}", " ".bright_blue(), "KUIPER RUNTIME INTEGRATION TESTS".bright_cyan().bold());
-    println!("{}\n", "╚══════════════════════════════════════════════════════════╝".bright_blue());
+    println!(
+        "\n{}\n",
+        "╔══════════════════════════════════════════════════════════╗".bright_blue()
+    );
+    println!(
+        "{}  {}",
+        " ".bright_blue(),
+        "KUIPER RUNTIME INTEGRATION TESTS".bright_cyan().bold()
+    );
+    println!(
+        "{}\n",
+        "╚══════════════════════════════════════════════════════════╝".bright_blue()
+    );
 
-    let tests: Vec<(&str, fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = TestResult>>>)> = vec![
+    let tests: Vec<(
+        &str,
+        fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = TestResult>>>,
+    )> = vec![
         ("Runtime Creation", || Box::pin(test_runtime_creation())),
-        ("Command Context Creation", || Box::pin(test_command_context_creation())),
+        ("Command Context Creation", || {
+            Box::pin(test_command_context_creation())
+        }),
         ("Echo Command", || Box::pin(test_echo_command())),
         ("Set Command", || Box::pin(test_set_command())),
         ("Set Then Get", || Box::pin(test_set_then_get())),
         ("Version Command", || Box::pin(test_version_command())),
         ("List Empty", || Box::pin(test_list_empty())),
         ("Delete Command", || Box::pin(test_delete_command())),
-        ("Nonexistent Command Error", || Box::pin(test_nonexistent_command())),
-        ("Activity ID Tracking", || Box::pin(test_activity_id_tracking())),
-        ("Multiple Resources List", || Box::pin(test_multiple_resources_list())),
+        ("Nonexistent Command Error", || {
+            Box::pin(test_nonexistent_command())
+        }),
+        ("Activity ID Tracking", || {
+            Box::pin(test_activity_id_tracking())
+        }),
+        ("Multiple Resources List", || {
+            Box::pin(test_multiple_resources_list())
+        }),
     ];
 
     let mut results = Vec::new();

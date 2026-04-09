@@ -1,9 +1,11 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use async_trait::async_trait;
 use anyhow::anyhow;
+use async_trait::async_trait;
 
-use super::{StoreContainer, StoreKey, StoreOperation, StoreResult, StoreValue, TransactionalKeyValueStore};
+use super::{
+    StoreContainer, StoreKey, StoreOperation, StoreResult, StoreValue, TransactionalKeyValueStore,
+};
 
 pub struct InMemoryStore {
     data: Mutex<HashMap<StoreContainer, HashMap<StoreKey, StoreValue>>>,
@@ -19,7 +21,11 @@ impl InMemoryStore {
 
 #[async_trait]
 impl TransactionalKeyValueStore for InMemoryStore {
-    async fn list_keys(&self, container: &str, key_prefix: Option<&str>) -> StoreResult<Vec<StoreKey>> {
+    async fn list_keys(
+        &self,
+        container: &str,
+        key_prefix: Option<&str>,
+    ) -> StoreResult<Vec<StoreKey>> {
         let data = self.data.lock().unwrap();
         let container_data = data.get(container);
 
@@ -49,7 +55,9 @@ impl TransactionalKeyValueStore for InMemoryStore {
     async fn put(&self, container: &str, key: &str, value: StoreValue) -> StoreResult<StoreValue> {
         let mut data = self.data.lock().unwrap();
         let container_map = data.entry(container.to_string()).or_default();
-        Ok(container_map.insert(key.to_string(), value).unwrap_or_default())
+        Ok(container_map
+            .insert(key.to_string(), value)
+            .unwrap_or_default())
     }
 
     async fn delete(&self, container: &str, key: &str) -> StoreResult<()> {
@@ -104,11 +112,7 @@ impl TransactionalKeyValueStore for InMemoryStore {
         Ok(data.keys().cloned().collect())
     }
 
-    async fn rename_container(
-        &self,
-        old: &str,
-        new: &str,
-    ) -> StoreResult<()> {
+    async fn rename_container(&self, old: &str, new: &str) -> StoreResult<()> {
         let mut data = self.data.lock().unwrap();
         if !data.contains_key(old) {
             return Err(anyhow!("Container '{}' does not exist", old));
@@ -132,4 +136,3 @@ impl TransactionalKeyValueStore for InMemoryStore {
         }
     }
 }
-

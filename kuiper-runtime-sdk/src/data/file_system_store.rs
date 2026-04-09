@@ -1,10 +1,17 @@
-use std::{fs::{self, File}, io::{Read, Write}, path::{Path, PathBuf}, vec};
+use std::{
+    fs::{self, File},
+    io::{Read, Write},
+    path::{Path, PathBuf},
+    vec,
+};
 
 use async_trait::async_trait;
 use tokio::sync::Mutex;
 use walkdir::WalkDir;
 
-use super::{StoreContainer, StoreKey, StoreOperation, StoreResult, StoreValue, TransactionalKeyValueStore};
+use super::{
+    StoreContainer, StoreKey, StoreOperation, StoreResult, StoreValue, TransactionalKeyValueStore,
+};
 
 pub struct FileSystemStore {
     root: PathBuf,
@@ -79,7 +86,11 @@ impl TransactionalKeyValueStore for FileSystemStore {
         Ok(containers)
     }
 
-    async fn list_keys(&self, container: &str, key_prefix: Option<&str>) -> StoreResult<Vec<StoreKey>> {
+    async fn list_keys(
+        &self,
+        container: &str,
+        key_prefix: Option<&str>,
+    ) -> StoreResult<Vec<StoreKey>> {
         let container_root: PathBuf = self.container_path(container);
         let container_prefix = format!("{}/", container);
 
@@ -93,12 +104,15 @@ impl TransactionalKeyValueStore for FileSystemStore {
         if !container_root.exists() {
             return Ok(vec![]);
         }
-    
+
         let mut values = Vec::new();
-    
-        for entry in WalkDir::new(&container_root).into_iter().filter_map(Result::ok) {
+
+        for entry in WalkDir::new(&container_root)
+            .into_iter()
+            .filter_map(Result::ok)
+        {
             let path = entry.path();
-    
+
             if path.is_dir() {
                 // get files in the directory
                 for file_entry in fs::read_dir(path)? {
@@ -106,25 +120,31 @@ impl TransactionalKeyValueStore for FileSystemStore {
 
                     if file_path.is_file() {
                         let store_key = self.fs_path_to_key(&file_path);
-                        
+
                         if key_prefix.is_some() && store_key.starts_with(key_prefix.unwrap()) {
-                            let cleaned_key = store_key.strip_prefix(&container_prefix).unwrap().to_string();
+                            let cleaned_key = store_key
+                                .strip_prefix(&container_prefix)
+                                .unwrap()
+                                .to_string();
                             values.push(cleaned_key);
                         } else {
-                            let cleaned_key = store_key.strip_prefix(&container_prefix).unwrap().to_string();
+                            let cleaned_key = store_key
+                                .strip_prefix(&container_prefix)
+                                .unwrap()
+                                .to_string();
                             values.push(cleaned_key);
                         }
                     }
                 }
             }
         }
-    
+
         Ok(values)
     }
 
     async fn get(&self, container: &str, key: &str) -> StoreResult<StoreValue> {
         let path = self.key_path(&container, &key);
-        
+
         if !path.exists() {
             return Err(anyhow::Error::new(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -149,7 +169,7 @@ impl TransactionalKeyValueStore for FileSystemStore {
     async fn delete(&self, container: &str, key: &str) -> StoreResult<()> {
         let container_path_buf = self.container_path(&container);
         let container_path = container_path_buf.as_path();
-        
+
         let path = self.key_path(&container, &key);
         if path.exists() {
             fs::remove_file(&path)?;
@@ -221,7 +241,7 @@ impl TransactionalKeyValueStore for FileSystemStore {
 
     async fn clear_container(&self, container: &str) -> StoreResult<()> {
         let path = self.container_path(container);
-        
+
         if !path.exists() {
             return Err(anyhow::Error::new(std::io::Error::new(
                 std::io::ErrorKind::NotFound,

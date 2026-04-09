@@ -8,8 +8,15 @@ pub use config::KuiperConfig;
 
 use std::sync::Arc;
 
-use command::{commands::{DeleteCommand, EchoCommand, GetCommand, ListCommand, SetCommand, VersionCommand}, reconcile::ReconcileCommand, CommandExecutor};
-use kuiper_runtime_sdk::{command::{CommandContext, CommandDispatcher, CommandHandler, CommandResult}, data::TransactionalKeyValueStore};
+use command::{
+    commands::{DeleteCommand, EchoCommand, GetCommand, ListCommand, SetCommand, VersionCommand},
+    reconcile::ReconcileCommand,
+    CommandExecutor,
+};
+use kuiper_runtime_sdk::{
+    command::{CommandContext, CommandDispatcher, CommandHandler, CommandResult},
+    data::TransactionalKeyValueStore,
+};
 use tokio::sync::RwLock;
 
 pub struct KuiperRuntimeBuilder {
@@ -26,20 +33,18 @@ impl KuiperRuntimeBuilder {
         executor.register_handler("set", Arc::new(SetCommand::new(shared_store.clone())));
         executor.register_handler("delete", Arc::new(DeleteCommand::new(shared_store.clone())));
         executor.register_handler("list", Arc::new(ListCommand::new(shared_store.clone())));
-        executor.register_handler("reconcile", Arc::new(ReconcileCommand::new(shared_store.clone())));
+        executor.register_handler(
+            "reconcile",
+            Arc::new(ReconcileCommand::new(shared_store.clone())),
+        );
 
         Self {
             config: KuiperConfig::default(),
-            executor
+            executor,
         }
     }
 
-    pub fn register_handler(
-        &mut self,
-        name: &str,
-        handler: Arc<dyn CommandHandler>
-    ) -> &mut Self
-    {
+    pub fn register_handler(&mut self, name: &str, handler: Arc<dyn CommandHandler>) -> &mut Self {
         self.executor.register_handler(name, handler);
         self
     }

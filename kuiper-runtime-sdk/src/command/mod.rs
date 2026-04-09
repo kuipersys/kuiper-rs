@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -17,15 +17,20 @@ pub struct CommandContext {
 
 impl CommandContext {
     pub fn get_string_param(&self, name: &str) -> anyhow::Result<String> {
-        self.parameters.get(name)
-            .ok_or_else( || anyhow::anyhow!("Missing required parameter: {}", name))?
+        self.parameters
+            .get(name)
+            .ok_or_else(|| anyhow::anyhow!("Missing required parameter: {}", name))?
             .as_str()
             .map(str::to_owned)
-            .ok_or_else(|| anyhow::anyhow!("Invalid type for parameter '{}'; expected string", name))
+            .ok_or_else(|| {
+                anyhow::anyhow!("Invalid type for parameter '{}'; expected string", name)
+            })
     }
 
     pub fn get_param(&self, name: &str) -> anyhow::Result<String> {
-        let parameter = self.parameters.get(name)
+        let parameter = self
+            .parameters
+            .get(name)
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("Missing required parameter: {}", name));
 
@@ -50,7 +55,7 @@ pub enum CommandType {
     /// Mutator commands are responsible for changing the state of the system.
     /// They are executed first in the command pipeline.
     Mutator,
-    
+
     /// Validator commands are responsible for validating the state of the system.
     /// They are executed after mutator commands and before finalizer commands.
     Validator,

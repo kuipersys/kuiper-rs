@@ -19,10 +19,7 @@ impl ResourceDescriptor {
             .or_else(|| path.strip_prefix("/api"))
             .unwrap_or(path);
 
-        let segments: Vec<&str> = path
-            .split('/')
-            .filter(|s| !s.trim().is_empty())
-            .collect();
+        let segments: Vec<&str> = path.split('/').filter(|s| !s.trim().is_empty()).collect();
 
         if segments.len() < 3 {
             return Err("Path must have at least 3 segments: group, namespace, kind.".into());

@@ -14,7 +14,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let store = FileSystemStore::new(&config.store_path).unwrap();
     let builder = KuiperRuntimeBuilder::new(Arc::new(tokio::sync::RwLock::new(store)));
     let runtime = builder.build();
-    
+
     let cli = Cli::parse();
     let mut context = cli.command.into_context();
 
@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Print the result in the specified format
                 formatter::print_output(&result, cli.output, cli.pretty);
             }
-        },
+        }
         Err(err) => {
             eprintln!("Error executing command: {}", err);
         }

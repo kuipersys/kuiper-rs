@@ -24,7 +24,7 @@ pub struct Cli {
 pub enum OutputFormat {
     Standard,
     Json,
-    Yaml
+    Yaml,
 }
 
 #[derive(Subcommand, Debug)]
@@ -118,7 +118,8 @@ impl Command {
             _ => panic!("Unsupported command"),
         };
 
-        let mut parameters: HashMap<String, serde_json::Value> = args.parameters
+        let mut parameters: HashMap<String, serde_json::Value> = args
+            .parameters
             .into_iter()
             .map(|(k, v)| (k, serde_json::json!(v)))
             .collect();
@@ -132,7 +133,6 @@ impl Command {
             parameters.insert("name".to_string(), serde_json::json!(name));
         }
 
-
         let mut metadata: HashMap<String, String> = args.metadata.into_iter().collect();
 
         metadata.insert("namespace".to_string(), args.namespace);
@@ -142,7 +142,7 @@ impl Command {
         if let Some(file) = args.file {
             metadata.insert("file".to_string(), file);
         }
-        
+
         CommandContext {
             command_name: verb.to_string(),
             parameters,
@@ -152,4 +152,3 @@ impl Command {
         }
     }
 }
-

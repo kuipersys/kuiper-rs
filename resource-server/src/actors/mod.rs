@@ -21,7 +21,9 @@ fn extract_bearer_token(req: &HttpRequest) -> Result<String, actix_web::Error> {
     if let Some(token) = header_str.strip_prefix("Bearer ") {
         Ok(token.to_string())
     } else {
-        Err(actix_web::error::ErrorUnauthorized("Invalid bearer token format"))
+        Err(actix_web::error::ErrorUnauthorized(
+            "Invalid bearer token format",
+        ))
     }
 }
 

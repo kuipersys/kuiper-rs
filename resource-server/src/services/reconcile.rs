@@ -38,7 +38,8 @@ impl ReconciliationService {
             cancellation_token: self.cancel_token.child_token(),
         };
 
-        ctx.metadata.insert("namespace".to_string(), "global".to_string());
+        ctx.metadata
+            .insert("namespace".to_string(), "global".to_string());
 
         self.runtime.execute(&mut ctx).await?;
 
@@ -67,7 +68,7 @@ impl HostedService for ReconciliationService {
     async fn start(self: &Arc<Self>) -> anyhow::Result<()> {
         let token = self.cancel_token.clone();
         let service = Arc::new(self.clone());
- 
+
         let handle = tokio::spawn(async move {
             let mut ticker = tokio::time::interval(std::time::Duration::from_secs(5));
             service.is_running.store(true, Ordering::SeqCst);

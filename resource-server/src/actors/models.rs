@@ -23,12 +23,7 @@ pub enum ServerMessage {
     #[serde(rename = "pong")]
     Pong,
     #[serde(rename = "hello")]
-    Hello {
-        client_id: String,
-        message: String,  
-    },
+    Hello { client_id: String, message: String },
     #[serde(rename = "error")]
-    Error {
-        message: String,
-    },
+    Error { message: String },
 }

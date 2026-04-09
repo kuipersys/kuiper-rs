@@ -2,11 +2,13 @@ pub mod commands;
 pub mod reconcile;
 mod version;
 
-use std::{collections::HashMap, sync::Arc};
 use anyhow::Ok;
 use async_trait::async_trait;
-use kuiper_runtime_sdk::command::{CommandContext, CommandDispatcher, CommandHandler, CommandResult, CommandType};
+use kuiper_runtime_sdk::command::{
+    CommandContext, CommandDispatcher, CommandHandler, CommandResult, CommandType,
+};
 use serde_json::Value;
+use std::{collections::HashMap, sync::Arc};
 
 pub struct CommandExecutor {
     handlers: HashMap<String, Vec<Arc<dyn CommandHandler>>>,
@@ -14,14 +16,12 @@ pub struct CommandExecutor {
 
 impl CommandExecutor {
     pub fn new() -> Self {
-        Self { handlers: HashMap::new() }
+        Self {
+            handlers: HashMap::new(),
+        }
     }
 
-    pub fn register_handler(
-        &mut self,
-        name: &str,
-        handler: Arc<dyn CommandHandler>,
-    ) {
+    pub fn register_handler(&mut self, name: &str, handler: Arc<dyn CommandHandler>) {
         if let Some(existing_handlers) = self.handlers.get_mut(name) {
             existing_handlers.push(handler);
             return;
@@ -53,11 +53,13 @@ impl CommandExecutor {
 
         Err(anyhow::Error::new(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
-            format!("Handler does not implement any command type: {}", handler.get_type().as_str()),
+            format!(
+                "Handler does not implement any command type: {}",
+                handler.get_type().as_str()
+            ),
         )))
     }
 }
-
 
 #[async_trait]
 impl CommandDispatcher for CommandExecutor {
@@ -68,9 +70,8 @@ impl CommandDispatcher for CommandExecutor {
 
                 let mut sorted_handlers = handlers.clone(); // or clone the Arc if needed
 
-                sorted_handlers.sort_by(|a, b| {
-                    a.get_type().priority().cmp(&b.get_type().priority())
-                });
+                sorted_handlers
+                    .sort_by(|a, b| a.get_type().priority().cmp(&b.get_type().priority()));
 
                 for handler in sorted_handlers {
                     let result = self.execute_handler(ctx, &handler).await?;
@@ -83,7 +84,7 @@ impl CommandDispatcher for CommandExecutor {
                 }
 
                 return Ok(final_result);
-            },
+            }
             None => Err(anyhow::Error::new(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
                 format!("Command handler not found for: {}", ctx.command_name),

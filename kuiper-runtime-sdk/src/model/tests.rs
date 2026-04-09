@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use serde_json::{json, Value};
-use uuid::Uuid;
 use crate::model::resource::{SystemObject, SystemObjectMetadata};
+use serde_json::{json, Value};
+use std::collections::HashMap;
+use uuid::Uuid;
 
 #[test]
 fn test_system_object_metadata_serialization() {
@@ -16,8 +16,14 @@ fn test_system_object_metadata_serialization() {
             deletion_timestamp: None,
             resource_version: Some("v1".to_string()),
             self_link: Some("/api/v1/namespaces/default/my-object".to_string()),
-            labels: Some(HashMap::from([("env".to_string(), "production".to_string())])),
-            annotations: Some(HashMap::from([("owner".to_string(), "dev-team".to_string())])),
+            labels: Some(HashMap::from([(
+                "env".to_string(),
+                "production".to_string(),
+            )])),
+            annotations: Some(HashMap::from([(
+                "owner".to_string(),
+                "dev-team".to_string(),
+            )])),
             finalizers: Some(vec!["cleanup".to_string()]),
             extension_data: HashMap::new(),
         },
@@ -25,7 +31,9 @@ fn test_system_object_metadata_serialization() {
         extension_data: HashMap::new(),
     };
 
-    system_object.extension_data.insert("spec".to_string(), json!("value"));
+    system_object
+        .extension_data
+        .insert("spec".to_string(), json!("value"));
 
     let serialized = serde_json::to_string_pretty(&system_object).unwrap();
 
