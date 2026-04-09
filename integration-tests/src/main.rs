@@ -125,6 +125,7 @@ async fn test_command_context_creation() -> TestResult {
         metadata,
         activity_id: Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     let passed = ctx.command_name == "test" && !ctx.activity_id.is_nil();
@@ -148,6 +149,7 @@ async fn test_echo_command() -> TestResult {
         metadata: HashMap::new(),
         activity_id: Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     let result = runtime.execute(&mut ctx).await;
@@ -201,6 +203,7 @@ async fn test_set_command() -> TestResult {
         },
         activity_id: Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     let result = runtime.execute(&mut ctx).await;
@@ -246,6 +249,7 @@ async fn test_set_then_get() -> TestResult {
         },
         activity_id: Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     let set_result = runtime.execute(&mut set_ctx).await;
@@ -276,6 +280,7 @@ async fn test_set_then_get() -> TestResult {
         },
         activity_id: Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     let get_result = runtime.execute(&mut get_ctx).await;
@@ -311,6 +316,7 @@ async fn test_version_command() -> TestResult {
         metadata: HashMap::new(),
         activity_id: Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     let result = runtime.execute(&mut ctx).await;
@@ -348,6 +354,7 @@ async fn test_list_empty() -> TestResult {
         },
         activity_id: Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     let result = runtime.execute(&mut ctx).await;
@@ -402,6 +409,7 @@ async fn test_delete_command() -> TestResult {
         },
         activity_id: Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     let _ = runtime.execute(&mut set_ctx).await;
@@ -424,6 +432,7 @@ async fn test_delete_command() -> TestResult {
         },
         activity_id: Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     let delete_result = runtime.execute(&mut delete_ctx).await;
@@ -449,6 +458,7 @@ async fn test_nonexistent_command() -> TestResult {
         metadata: HashMap::new(),
         activity_id: Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     let result = runtime.execute(&mut ctx).await;
@@ -475,6 +485,7 @@ async fn test_activity_id_tracking() -> TestResult {
         metadata: HashMap::new(),
         activity_id,
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     let _ = runtime.execute(&mut ctx).await;
@@ -523,6 +534,7 @@ async fn test_multiple_resources_list() -> TestResult {
             },
             activity_id: Uuid::new_v4(),
             cancellation_token: CancellationToken::new(),
+        is_internal: false,
         };
         let _ = runtime.execute(&mut ctx).await;
     }
@@ -542,6 +554,7 @@ async fn test_multiple_resources_list() -> TestResult {
         },
         activity_id: Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     let result = runtime.execute(&mut list_ctx).await;

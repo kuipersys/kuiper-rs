@@ -45,6 +45,7 @@ fn kuiper_error_response(e: anyhow::Error) -> HttpResponse {
             KuiperError::NotFound(msg) => HttpResponse::NotFound().body(msg.clone()),
             KuiperError::Conflict(msg) => HttpResponse::Conflict().body(msg.clone()),
             KuiperError::Invalid(msg) => HttpResponse::BadRequest().body(msg.clone()),
+            KuiperError::Forbidden(msg) => HttpResponse::Forbidden().body(msg.clone()),
         };
     }
     HttpResponse::InternalServerError().body(e.to_string())
@@ -77,6 +78,7 @@ async fn version_handler(
         metadata: HashMap::new(),
         activity_id: uuid::Uuid::new_v4(),
         cancellation_token: token,
+        is_internal: false,
     };
 
     match runtime.execute(&mut ctx).await {
@@ -117,6 +119,7 @@ async fn api_put_handler(
         metadata: HashMap::new(),
         activity_id: uuid::Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     // Read the body of the request
@@ -177,6 +180,7 @@ async fn api_handler(rt: web::Data<Arc<KuiperRuntime>>, req: HttpRequest) -> imp
         metadata: HashMap::new(),
         activity_id: uuid::Uuid::new_v4(),
         cancellation_token: CancellationToken::new(),
+    is_internal: false,
     };
 
     ctx.parameters.insert(

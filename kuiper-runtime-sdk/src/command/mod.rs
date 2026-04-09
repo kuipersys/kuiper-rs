@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CommandContext {
     pub command_name: String,
     pub parameters: HashMap<String, serde_json::Value>,

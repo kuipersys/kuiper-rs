@@ -3,7 +3,7 @@ resolver = "2"
 members = [
     "kuiper-runtime-sdk",
     "kuiper-runtime",
-    "kctl",
+    "kr",
     "resource-server",
     "integration-tests"
 ]

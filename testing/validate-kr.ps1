@@ -1,12 +1,12 @@
-# validate-kctl.ps1
-# End-to-end validation of kctl against a local file-system store.
+# validate-kr.ps1
+# End-to-end validation of kr against a local file-system store.
 # Submits ResourceDefinitions and then creates / reads resources from them.
 #
 # Usage:
-#   .\testing\validate-kctl.ps1
+#   .\testing\validate-kr.ps1
 #
 # Requirements:
-#   cargo build must have been run first (binary at target/debug/kctl.exe)
+#   cargo build must have been run first (binary at target/debug/kr.exe)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -15,7 +15,7 @@ $ErrorActionPreference = 'Stop'
 
 $ScriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot    = Split-Path -Parent $ScriptDir
-$Kctl        = Join-Path $RepoRoot 'target\debug\kctl.exe'
+$Kr           = Join-Path $RepoRoot 'target\debug\kr.exe'
 $FixturesDir = Join-Path $ScriptDir 'fixtures'
 $StoreDir    = Join-Path $ScriptDir 'store'
 $TempDir     = Join-Path $ScriptDir 'temp'
@@ -40,18 +40,18 @@ New-Item -ItemType Directory -Path $TempDir | Out-Null
 $Passed = 0
 $Failed = 0
 
-function Invoke-Kctl {
-    param([string[]]$KctlArgs)
-    & $Kctl @KctlArgs 2>&1
+function Invoke-Kr {
+    param([string[]]$KrArgs)
+    & $Kr @KrArgs 2>&1
 }
 
 function Assert-Success {
     param(
         [string]$TestName,
-        [string[]]$KctlArgs,
+        [string[]]$KrArgs,
         [string]$Contains = $null
     )
-    $output = Invoke-Kctl $KctlArgs
+    $output = Invoke-Kr $KrArgs
     $exitCode = $LASTEXITCODE
 
     $ok = $exitCode -eq 0
@@ -72,9 +72,9 @@ function Assert-Success {
 function Assert-Failure {
     param(
         [string]$TestName,
-        [string[]]$KctlArgs
+        [string[]]$KrArgs
     )
-    $output = Invoke-Kctl $KctlArgs
+    $output = Invoke-Kr $KrArgs
     $exitCode = $LASTEXITCODE
 
     if ($exitCode -ne 0) {
@@ -90,10 +90,10 @@ function Assert-Failure {
 function Assert-FailureContaining {
     param(
         [string]$TestName,
-        [string[]]$KctlArgs,
+        [string[]]$KrArgs,
         [string]$ErrorContains
     )
-    $output = (Invoke-Kctl $KctlArgs) -join "`n"
+    $output = (Invoke-Kr $KrArgs) -join "`n"
     $exitCode = $LASTEXITCODE
 
     $rejected = $exitCode -ne 0
@@ -117,14 +117,14 @@ function Assert-FailureContaining {
 # ── Preflight ─────────────────────────────────────────────────────────────────
 
 Write-Host ""
-Write-Host "=== kctl Validation ===" -ForegroundColor Cyan
-Write-Host "  binary : $Kctl"
+Write-Host "=== kr Validation ==" -ForegroundColor Cyan
+Write-Host "  binary : $Kr"
 Write-Host "  store  : $StoreDir"
 Write-Host "  fixtures: $FixturesDir"
 Write-Host ""
 
-if (-not (Test-Path $Kctl)) {
-    Write-Host "ERROR: kctl binary not found. Run 'cargo build' first." -ForegroundColor Red
+if (-not (Test-Path $Kr)) {
+    Write-Host "ERROR: kr binary not found. Run 'cargo build' first." -ForegroundColor Red
     exit 1
 }
 

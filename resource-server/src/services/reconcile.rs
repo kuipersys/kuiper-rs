@@ -36,6 +36,7 @@ impl ReconciliationService {
             metadata: std::collections::HashMap::new(),
             activity_id: uuid::Uuid::new_v4(),
             cancellation_token: self.cancel_token.child_token(),
+            is_internal: false,
         };
 
         ctx.metadata

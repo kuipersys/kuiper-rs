@@ -53,7 +53,7 @@ fn resource_path_from_value(value: &serde_json::Value) -> anyhow::Result<String>
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "kctl", about = "Kuiper Control CLI")]
+#[command(name = "kr", about = "Kuiper Resources CLI")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
