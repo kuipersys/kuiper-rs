@@ -1,0 +1,25 @@
+[package]
+name = "coordinator"
+version = "0.1.0"
+edition = "2021"
+description = "Async reconciliation coordinator for kuiper-rs. Subscribes to all resource events via WebSocket and triggers reconciliation on demand."
+
+[[bin]]
+name = "coordinator"
+path = "src/main.rs"
+
+[dependencies]
+kuiper-runtime = { workspace = true }
+kuiper-runtime-sdk = { workspace = true }
+
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tokio-tungstenite = { workspace = true }
+futures-util = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+uuid = { workspace = true }

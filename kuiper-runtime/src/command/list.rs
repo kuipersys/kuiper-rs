@@ -68,11 +68,6 @@ impl ExecutableCommand for ListCommand {
                 Err(_) => continue, // corrupt entry — skip rather than fail the whole list
             };
 
-            // Exclude resources that are pending deletion.
-            if obj.metadata.deletion_timestamp.is_some() {
-                continue;
-            }
-
             if let Ok(v) = serde_json::to_value(&obj) {
                 items.push(v);
             }

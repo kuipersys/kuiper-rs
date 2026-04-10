@@ -130,9 +130,13 @@ impl ExecutableCommand for SetCommand {
                         }
                     }
 
-                    // Preserve immutable identity fields from the stored object.
+                    // Preserve immutable identity fields: uid, creationTimestamp,
+                    // and deletionTimestamp (once set it cannot be cleared via PUT).
                     obj.metadata.uid = stored_obj.metadata.uid;
                     obj.metadata.creation_timestamp = stored_obj.metadata.creation_timestamp;
+                    if stored_obj.metadata.deletion_timestamp.is_some() {
+                        obj.metadata.deletion_timestamp = stored_obj.metadata.deletion_timestamp;
+                    }
                 }
                 Err(_) => {
                     // ── Create path ──

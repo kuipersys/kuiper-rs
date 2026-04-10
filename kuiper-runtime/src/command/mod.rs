@@ -84,7 +84,11 @@ impl CommandDispatcher for CommandExecutor {
                     // Take the first non-None result for internal commands, everything else should
                     // simply be ignored
                     if final_result.is_none() && handler.get_type() == CommandType::Internal {
-                        final_result = result;
+                        final_result = result.clone();
+                        // Pass the result to subsequent handlers (like Observers) via context
+                        if let Some(ref value) = result {
+                            ctx.parameters.insert("value".to_string(), value.clone());
+                        }
                     }
                 }
 

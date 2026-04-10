@@ -59,9 +59,12 @@ impl ExecutableCommand for DeleteCommand {
         let mut obj: SystemObject = serde_json::from_slice(&bytes)
             .context("Failed to parse stored value as SystemObject")?;
 
-        // If the resource is already marked for deletion, no-op.
+        // If the resource is already marked for deletion, return the existing object
+        // so observers still receive the event.
         if obj.metadata.deletion_timestamp.is_some() {
-            return Ok(None);
+            let result = serde_json::to_value(&obj)
+                .context("Failed to convert SystemObject to JSON")?;
+            return Ok(Some(result));
         }
 
         obj.metadata.deletion_timestamp = Some(chrono::Utc::now().timestamp_micros());
@@ -71,6 +74,8 @@ impl ExecutableCommand for DeleteCommand {
 
         store.put(RESOURCE_CONTAINER, &key, value_bytes).await?;
 
-        Ok(None)
+        let result =
+            serde_json::to_value(&obj).context("Failed to convert SystemObject to JSON")?;
+        Ok(Some(result))
     }
 }

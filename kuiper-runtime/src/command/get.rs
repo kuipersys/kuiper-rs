@@ -61,15 +61,6 @@ impl ExecutableCommand for GetCommand {
         let obj: SystemObject = serde_json::from_slice(&bytes)
             .context("Failed to parse stored value as SystemObject")?;
 
-        // Treat soft-deleted resources as not found — they are pending reconciliation.
-        if obj.metadata.deletion_timestamp.is_some() {
-            return Err(KuiperError::NotFound(format!(
-                "Resource '{}' is pending deletion",
-                resource
-            ))
-            .into());
-        }
-
         let result = serde_json::to_value(&obj).context("Failed to serialize SystemObject")?;
         Ok(Some(result))
     }

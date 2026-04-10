@@ -100,6 +100,10 @@ pub enum Command {
 
     // Debugging / Monitoring Commands
     Echo(CommonArgs),
+
+    /// Trigger a reconciliation pass: hard-deletes resources that have a
+    /// `deletionTimestamp` and an empty finalizer list.
+    Reconcile,
     // Log(CommonArgs),
     // Diff(CommonArgs),
     // Validate(CommonArgs),
@@ -166,7 +170,17 @@ impl Command {
             Command::Set(args) => ("set", args, false),
             Command::Version(args) => ("version", args, false),
             Command::Define(args) => ("set", args, true),
-            _ => panic!("Unsupported command"),
+            Command::Reconcile => {
+                return CommandContext {
+                    command_name: "reconcile".to_string(),
+                    parameters: HashMap::new(),
+                    metadata: HashMap::new(),
+                    activity_id: Uuid::new_v4(),
+                    caller_id: None,
+                    is_internal: true,
+                    cancellation_token: CancellationToken::new(),
+                };
+            }
         };
 
         let mut parameters: HashMap<String, serde_json::Value> = args

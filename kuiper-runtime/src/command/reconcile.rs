@@ -33,7 +33,7 @@ impl CommandHandler for ReconcileCommand {
 #[async_trait]
 impl ExecutableCommand for ReconcileCommand {
     // This command is executed in the context of the Kuiper runtime
-    async fn execute(&self, ctx: &CommandContext) -> CommandResult {
+    async fn execute(&self, _: &CommandContext) -> CommandResult {
         let store = self.store.write().await;
 
         if !store
@@ -61,7 +61,7 @@ impl ExecutableCommand for ReconcileCommand {
             let resource_value: SystemObject = serde_json::from_slice(&resource_data)?;
 
             if resource_value.metadata.deletion_timestamp.is_none() {
-                println!("Resource is not marked for deletion, skipping");
+                // println!("Resource is not marked for deletion, skipping");
                 continue;
             }
 

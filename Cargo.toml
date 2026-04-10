@@ -5,7 +5,8 @@ members = [
     "kuiper-runtime",
     "kr",
     "resource-server",
-    "integration-tests"
+    "integration-tests",
+    "coordinator"
 ]
 
 # NOTE: For FIPS Compliant tls
@@ -34,7 +35,7 @@ yaml_serde = "0.10.4"
 jsonschema = "0.45.1"
 
 # Async
-tokio = { version = "1", features = ["signal", "process", "macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["signal", "process", "macros", "rt-multi-thread", "time", "sync"] }
 tokio-util = "0.7"
 async-trait = "0.1.89"
 
@@ -69,3 +70,4 @@ vergen = { version = "8.3.2", features = ["build", "cargo", "git", "gitcl", "rus
 lazy_static = "1.5.0"
 walkdir = "2"
 dashmap = "6.1.0"
+tokio-tungstenite = "0.26"

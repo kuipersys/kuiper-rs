@@ -2,12 +2,14 @@ mod command;
 mod config;
 mod constants;
 pub mod registry;
+pub mod service;
 
 #[cfg(test)]
 mod tests;
 
 pub use config::KuiperConfig;
 pub use registry::ResourceRegistry;
+pub use service::HostedService;
 
 use std::sync::Arc;
 
@@ -50,10 +52,6 @@ impl KuiperRuntimeBuilder {
         );
         executor.register_handler("delete", Arc::new(DeleteCommand::new(shared_store.clone())));
         executor.register_handler("list", Arc::new(ListCommand::new(shared_store.clone())));
-        executor.register_handler(
-            "reconcile",
-            Arc::new(ReconcileCommand::new(shared_store.clone())),
-        );
 
         Self {
             config: KuiperConfig::default(),
@@ -65,6 +63,18 @@ impl KuiperRuntimeBuilder {
 
     pub fn register_handler(&mut self, name: &str, handler: Arc<dyn CommandHandler>) -> &mut Self {
         self.executor.register_handler(name, handler);
+        self
+    }
+
+    /// Registers the `reconcile` command. Call this for consumers that are
+    /// permitted to run reconciliation (coordinator, kr CLI). Do **not** call
+    /// this for the resource-server so that reconcile is not reachable via the
+    /// HTTP/WebSocket API.
+    pub fn with_reconciliation(&mut self) -> &mut Self {
+        self.executor.register_handler(
+            "reconcile",
+            Arc::new(ReconcileCommand::new(self.store.clone())),
+        );
         self
     }
 

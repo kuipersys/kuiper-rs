@@ -8,8 +8,8 @@ use dashmap::DashMap;
 use kuiper_runtime::{KuiperConfig, KuiperRuntimeBuilder};
 use kuiper_runtime_sdk::data::file_system_store::FileSystemStore;
 use resource_server::{
-    commands::observer::SetObserverCommand, configure_app, services::HostedService, SubscriberMap,
-    SubscriptionMap,
+    commands::observer::{DeleteObserverCommand, SetObserverCommand},
+    configure_app, SubscriberMap, SubscriptionMap,
 };
 use std::sync::Arc;
 use std::thread;
@@ -37,11 +37,15 @@ async fn main() -> std::io::Result<()> {
             subscription_map.clone(),
         )),
     );
+    builder.register_handler(
+        "delete",
+        Arc::new(DeleteObserverCommand::new(
+            shared_store.clone(),
+            subscribers.clone(),
+            subscription_map.clone(),
+        )),
+    );
     let runtime = Arc::new(builder.build());
-
-    let service =
-        Arc::new(resource_server::services::reconcile::ReconciliationService::new(runtime.clone()));
-    service.start().await.unwrap();
 
     let port = 8080;
     let ip = "0.0.0.0";
@@ -77,8 +81,5 @@ async fn main() -> std::io::Result<()> {
     tracing::info!(">> Build Time: {}", env!("VERGEN_BUILD_TIMESTAMP"));
     tracing::info!(">> Starting Server On {}:{}", ip, port);
     tracing::info!(">> Press Ctrl-C to stop the server.");
-    server.run().await?;
-    service.stop().await.unwrap();
-
-    Ok(())
+    server.run().await
 }

@@ -12,7 +12,8 @@ use kuiper_runtime_sdk::data::file_system_store::FileSystemStore;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = KuiperConfig::from_env();
     let store = FileSystemStore::new(&config.store_path).unwrap();
-    let builder = KuiperRuntimeBuilder::new(Arc::new(tokio::sync::RwLock::new(store)));
+    let mut builder = KuiperRuntimeBuilder::new(Arc::new(tokio::sync::RwLock::new(store)));
+    builder.with_reconciliation();
     let runtime = builder.build();
 
     if let Err(e) = runtime.initialize().await {
