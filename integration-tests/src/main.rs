@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use colored::*;
-use kuiper_runtime::KuiperRuntimeBuilder;
 use kuiper_runtime::{
     command::{
         CommandContext, CommandHandler, CommandResult, CommandType, ExecutableCommand,
@@ -8,6 +7,7 @@ use kuiper_runtime::{
     },
     data::InMemoryStore,
 };
+use resource_server_runtime::KuiperRuntimeBuilder;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;

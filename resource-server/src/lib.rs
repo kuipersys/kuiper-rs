@@ -13,8 +13,8 @@ use actors::models::ServerMessage;
 use actors::ws_handler;
 use dashmap::DashMap;
 use kuiper_runtime::command::CommandContext;
-use kuiper_runtime::KuiperRuntime;
 use kuiper_types::error::KuiperError;
+use resource_server_runtime::KuiperRuntime;
 use routing::ResourceDescriptor;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -170,12 +170,10 @@ pub async fn api_handler(rt: web::Data<Arc<KuiperRuntime>>, req: HttpRequest) ->
         .insert("namespace".to_string(), descriptor.namespace.clone());
 
     match rt.execute(&mut ctx).await {
-        Ok(result) => match result {
-            // Soft-delete: resource has finalizers, deletion is pending coordinator reconciliation.
-            Some(value) => HttpResponse::Accepted().json(value),
-            // Hard-delete: no finalizers, resource removed immediately.
-            None => HttpResponse::NoContent().finish(),
-        },
+        Ok(Some(value)) if method == "DELETE" => HttpResponse::Accepted().json(value),
+        Ok(Some(value)) => HttpResponse::Ok().json(value),
+        // Hard-delete: no finalizers, resource removed immediately.
+        Ok(None) => HttpResponse::NoContent().finish(),
         Err(e) => kuiper_error_response(e),
     }
 }

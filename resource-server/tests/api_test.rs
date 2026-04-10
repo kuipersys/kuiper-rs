@@ -7,7 +7,8 @@
 use actix_web::http::StatusCode;
 use actix_web::{test, App};
 use dashmap::DashMap;
-use kuiper_runtime::{data::InMemoryStore, KuiperRuntimeBuilder};
+use kuiper_runtime::data::InMemoryStore;
+use resource_server_runtime::{KuiperRuntime, KuiperRuntimeBuilder};
 use resource_server::{
     commands::observer::SetObserverCommand, configure_app, SubscriberMap, SubscriptionMap,
 };
@@ -18,7 +19,7 @@ use tokio::sync::RwLock;
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 fn build_runtime() -> (
-    Arc<kuiper_runtime::KuiperRuntime>,
+    Arc<KuiperRuntime>,
     SubscriberMap,
     SubscriptionMap,
 ) {

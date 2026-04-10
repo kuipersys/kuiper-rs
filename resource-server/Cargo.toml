@@ -9,7 +9,8 @@ authors = ["Travis Sharp <travis@kuipersys.com>"]
 [dependencies]
 kuiper-types.workspace = true
 kuiper-runtime.workspace = true
-resource-server-api.workspace = true
+resource-server-runtime.workspace = true
+resource-server-sdk.workspace = true
 
 thiserror.workspace = true
 anyhow.workspace = true
