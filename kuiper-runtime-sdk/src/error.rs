@@ -33,4 +33,9 @@ pub enum KuiperError {
     /// The operation is not permitted (e.g. reserved UID prefix used by caller).
     #[error("Forbidden: {0}")]
     Forbidden(String),
+
+    /// A downstream service required to fulfil the request was unreachable or
+    /// returned an error (e.g. an admission webhook `ServiceEndpoint` is down).
+    #[error("Service unavailable: {0}")]
+    ServiceUnavailable(String),
 }

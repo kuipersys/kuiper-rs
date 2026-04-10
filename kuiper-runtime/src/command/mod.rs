@@ -1,3 +1,4 @@
+pub mod admission;
 pub mod delete;
 pub mod echo;
 pub mod get;

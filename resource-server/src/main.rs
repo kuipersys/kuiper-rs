@@ -29,6 +29,7 @@ async fn main() -> std::io::Result<()> {
     let subscription_map: SubscriptionMap = Arc::new(DashMap::new());
 
     let mut builder = KuiperRuntimeBuilder::new(shared_store.clone());
+    builder.with_admission_webhooks();
     builder.register_handler(
         "set",
         Arc::new(SetObserverCommand::new(

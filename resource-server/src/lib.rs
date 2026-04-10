@@ -34,6 +34,9 @@ pub fn kuiper_error_response(e: anyhow::Error) -> HttpResponse {
             KuiperError::Conflict(msg) => HttpResponse::Conflict().body(msg.clone()),
             KuiperError::Invalid(msg) => HttpResponse::BadRequest().body(msg.clone()),
             KuiperError::Forbidden(msg) => HttpResponse::Forbidden().body(msg.clone()),
+            KuiperError::ServiceUnavailable(msg) => {
+                HttpResponse::ServiceUnavailable().body(msg.clone())
+            }
         };
     }
     HttpResponse::InternalServerError().body(e.to_string())

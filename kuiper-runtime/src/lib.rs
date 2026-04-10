@@ -14,9 +14,9 @@ pub use service::HostedService;
 use std::sync::Arc;
 
 use command::{
-    delete::DeleteCommand, echo::EchoCommand, get::GetCommand, list::ListCommand,
-    reconcile::ReconcileCommand, set::SetCommand, validate::SchemaValidationCommand,
-    version::VersionCommand, CommandExecutor,
+    admission::AdmissionWebhookCommand, delete::DeleteCommand, echo::EchoCommand, get::GetCommand,
+    list::ListCommand, reconcile::ReconcileCommand, set::SetCommand,
+    validate::SchemaValidationCommand, version::VersionCommand, CommandExecutor,
 };
 use kuiper_runtime_sdk::{
     command::{CommandContext, CommandDispatcher, CommandHandler, CommandResult},
@@ -75,6 +75,16 @@ impl KuiperRuntimeBuilder {
             "reconcile",
             Arc::new(ReconcileCommand::new(self.store.clone())),
         );
+        self
+    }
+
+    /// Registers the admission webhook validator on both `set` and `delete`.
+    /// Call this for any runtime that should enforce `AdmissionPolicy` rules
+    /// (typically the resource-server).
+    pub fn with_admission_webhooks(&mut self) -> &mut Self {
+        let handler = Arc::new(AdmissionWebhookCommand::new(self.registry.clone()));
+        self.executor.register_handler("set", handler.clone());
+        self.executor.register_handler("delete", handler);
         self
     }
 

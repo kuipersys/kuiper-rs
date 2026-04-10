@@ -8,7 +8,11 @@ use std::sync::Arc;
 use anyhow::Context;
 use kuiper_runtime_sdk::{
     data::TransactionalKeyValueStore,
-    model::resource_definition::{ResourceDefinition, ResourceDefinitionVersion},
+    model::{
+        admission_policy::AdmissionPolicy,
+        resource_definition::{ResourceDefinition, ResourceDefinitionVersion},
+        service_endpoint::ServiceEndpoint,
+    },
 };
 use tokio::sync::RwLock;
 
@@ -86,6 +90,57 @@ impl ResourceRegistry {
     ) -> Option<&ResourceDefinitionVersion> {
         self.resource_versions
             .get(&format!("{}/{}/{}", group, kind, version).to_lowercase())
+    }
+
+    // ── Extension-type store lookups ──────────────────────────────────────────
+
+    /// Retrieves a `ServiceEndpoint` by name from the store.
+    pub async fn get_service_endpoint(&self, name: &str) -> anyhow::Result<ServiceEndpoint> {
+        let path = format!(
+            "{}/{}/ServiceEndpoint/{}",
+            SYSTEM_EXTENSION_GROUP, SYSTEM_API_VERSION, name
+        );
+        let key = resource_key(GLOBAL_NAMESPACE, Some(&path));
+        let store = self.store.read().await;
+        let bytes = store
+            .get(RESOURCE_CONTAINER, &key)
+            .await
+            .context(format!("ServiceEndpoint '{}' not found", name))?;
+        serde_json::from_slice(&bytes).context("Failed to deserialize ServiceEndpoint")
+    }
+
+    /// Lists all `AdmissionPolicy` objects whose target matches `group`/`kind`.
+    pub async fn get_admission_policies(
+        &self,
+        group: &str,
+        kind: &str,
+    ) -> anyhow::Result<Vec<AdmissionPolicy>> {
+        let prefix = resource_key(
+            GLOBAL_NAMESPACE,
+            Some(&format!(
+                "{}/{}/AdmissionPolicy/",
+                SYSTEM_EXTENSION_GROUP, SYSTEM_API_VERSION
+            )),
+        );
+        let store = self.store.read().await;
+        let keys = store
+            .list_keys(RESOURCE_CONTAINER, Some(&prefix))
+            .await
+            .context("Failed to list AdmissionPolicy keys")?;
+
+        let mut matching = Vec::new();
+        for key in &keys {
+            if let Ok(bytes) = store.get(RESOURCE_CONTAINER, key).await {
+                if let Ok(policy) = serde_json::from_slice::<AdmissionPolicy>(&bytes) {
+                    if policy.spec.target.group.eq_ignore_ascii_case(group)
+                        && policy.spec.target.kind.eq_ignore_ascii_case(kind)
+                    {
+                        matching.push(policy);
+                    }
+                }
+            }
+        }
+        Ok(matching)
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────

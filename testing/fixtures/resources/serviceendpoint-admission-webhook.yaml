@@ -1,0 +1,11 @@
+apiVersion: ext.api.cloud-api.dev/v1alpha1
+kind: ServiceEndpoint
+metadata:
+  name: admission-webhook
+  namespace: global
+spec:
+  url: http://localhost:9000
+  auth:
+    type: Bearer
+    tokenEnv: ADMISSION_WEBHOOK_TOKEN
+  timeoutSeconds: 5

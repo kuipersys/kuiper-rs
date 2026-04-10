@@ -59,6 +59,22 @@ impl ExecutableCommand for DeleteCommand {
         let mut obj: SystemObject = serde_json::from_slice(&bytes)
             .context("Failed to parse stored value as SystemObject")?;
 
+        // If there are no finalizers, we can delete immediately. Otherwise, we need to set the deletion timestamp.
+        if obj
+            .metadata
+            .finalizers
+            .as_ref()
+            .map_or(true, |f| f.is_empty())
+        {
+            // No finalizers, safe to delete immediately
+            store
+                .delete(RESOURCE_CONTAINER, &key)
+                .await
+                .context(format!("Failed to delete resource {}", resource))?;
+            tracing::info!("Deleted resource {}", resource);
+            return Ok(None); // No result needed for immediate deletion
+        }
+
         // If the resource is already marked for deletion, return the existing object
         // so observers still receive the event.
         if obj.metadata.deletion_timestamp.is_some() {

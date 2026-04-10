@@ -82,7 +82,10 @@ impl ExecutableCommand for ReconcileCommand {
                 continue;
             } else {
                 // Finalizers present, mark as pending deletion but keep in store until finalizers are cleared
-                tracing::debug!("Resource {} has finalizers, marked for pending deletion", resource);            
+                tracing::debug!(
+                    "Resource {} has finalizers, marked for pending deletion",
+                    resource
+                );
             }
         }
 

@@ -1,0 +1,17 @@
+apiVersion: ext.api.cloud-api.dev/v1alpha1
+kind: AdmissionPolicy
+metadata:
+  name: vm-admission
+  namespace: global
+spec:
+  target:
+    group: compute.cloud-api.dev
+    kind: VirtualMachine
+  operations:
+    - CREATE
+    - UPDATE
+  webhook:
+    serviceRef: admission-webhook
+    path: /admit
+    failurePolicy: Fail
+    timeoutSeconds: 5

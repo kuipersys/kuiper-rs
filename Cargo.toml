@@ -5,8 +5,7 @@ members = [
     "kuiper-runtime",
     "kr",
     "resource-server",
-    "integration-tests",
-    "kuiper-coordinator"
+    "integration-tests"
 ]
 
 # NOTE: For FIPS Compliant tls
@@ -67,6 +66,7 @@ zip = "2.6.1"
 sha2 = "0.10"   # Or `blake3 = "1.4"` for faster hashing
 uuid = { version = "1.23.0", features = ["serde", "v4"] }
 vergen = { version = "8.3.2", features = ["build", "cargo", "git", "gitcl", "rustc", "si"] }
+base64 = "0.22"
 lazy_static = "1.5.0"
 walkdir = "2"
 dashmap = "6.1.0"
