@@ -8,21 +8,17 @@ use actix_web::http::StatusCode;
 use actix_web::{test, App};
 use dashmap::DashMap;
 use kuiper_runtime::data::InMemoryStore;
-use resource_server_runtime::{KuiperRuntime, KuiperRuntimeBuilder};
 use resource_server::{
     commands::observer::SetObserverCommand, configure_app, SubscriberMap, SubscriptionMap,
 };
+use resource_server_runtime::{KuiperRuntime, KuiperRuntimeBuilder};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-fn build_runtime() -> (
-    Arc<KuiperRuntime>,
-    SubscriberMap,
-    SubscriptionMap,
-) {
+fn build_runtime() -> (Arc<KuiperRuntime>, SubscriberMap, SubscriptionMap) {
     let store = InMemoryStore::new();
     let shared_store = Arc::new(RwLock::new(store));
     let subscribers: SubscriberMap = Arc::new(DashMap::new());
