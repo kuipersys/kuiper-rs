@@ -62,8 +62,8 @@ impl ExecutableCommand for DeleteCommand {
         // If the resource is already marked for deletion, return the existing object
         // so observers still receive the event.
         if obj.metadata.deletion_timestamp.is_some() {
-            let result = serde_json::to_value(&obj)
-                .context("Failed to convert SystemObject to JSON")?;
+            let result =
+                serde_json::to_value(&obj).context("Failed to convert SystemObject to JSON")?;
             return Ok(Some(result));
         }
 

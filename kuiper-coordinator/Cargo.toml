@@ -1,11 +1,11 @@
 [package]
-name = "coordinator"
+name = "kuiper-coordinator"
 version = "0.1.0"
 edition = "2021"
 description = "Async reconciliation coordinator for kuiper-rs. Subscribes to all resource events via WebSocket and triggers reconciliation on demand."
 
 [[bin]]
-name = "coordinator"
+name = "kuiper-coordinator"
 path = "src/main.rs"
 
 [dependencies]

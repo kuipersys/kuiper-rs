@@ -8,6 +8,7 @@ use kuiper_runtime_sdk::{
     model::resource::SystemObject,
 };
 use tokio::sync::RwLock;
+use tracing::{self, instrument};
 
 pub struct ReconcileCommand {
     store: Arc<RwLock<dyn TransactionalKeyValueStore>>,
@@ -33,6 +34,7 @@ impl CommandHandler for ReconcileCommand {
 #[async_trait]
 impl ExecutableCommand for ReconcileCommand {
     // This command is executed in the context of the Kuiper runtime
+    // #[instrument(name = "ReconcileCommand.execute", skip(self))]
     async fn execute(&self, _: &CommandContext) -> CommandResult {
         let store = self.store.write().await;
 
@@ -61,7 +63,7 @@ impl ExecutableCommand for ReconcileCommand {
             let resource_value: SystemObject = serde_json::from_slice(&resource_data)?;
 
             if resource_value.metadata.deletion_timestamp.is_none() {
-                // println!("Resource is not marked for deletion, skipping");
+                // tracing::debug!("Resource {} is not marked for deletion, skipping", resource);
                 continue;
             }
 
@@ -71,14 +73,16 @@ impl ExecutableCommand for ReconcileCommand {
                 .unwrap_or(vec![])
                 .is_empty()
             {
+                // No finalizers, safe to delete immediately
                 store
                     .delete("resource", &resource)
                     .await
                     .context(format!("Failed to delete resource {}", resource))?;
+                tracing::info!("Deleted resource {}", resource);
                 continue;
             } else {
-                // Process finalizers
-                println!("Processing finalizers for resource {}", resource);
+                // Finalizers present, mark as pending deletion but keep in store until finalizers are cleared
+                tracing::debug!("Resource {} has finalizers, marked for pending deletion", resource);            
             }
         }
 

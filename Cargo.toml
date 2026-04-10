@@ -6,7 +6,7 @@ members = [
     "kr",
     "resource-server",
     "integration-tests",
-    "coordinator"
+    "kuiper-coordinator"
 ]
 
 # NOTE: For FIPS Compliant tls

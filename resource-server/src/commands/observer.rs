@@ -54,7 +54,7 @@ impl ExecutableCommand for SetObserverCommand {
         let value = match ctx.get_param("value") {
             Ok(v) => v,
             Err(_) => return Ok(None), // no result to observe
-        };;
+        };
 
         let system_object = serde_json::from_str::<SystemObject>(&value)
             .context("Failed to deserialize 'value' parameter")?;
@@ -138,7 +138,7 @@ impl ExecutableCommand for DeleteObserverCommand {
         let value = match ctx.get_param("value") {
             Ok(v) => v,
             Err(_) => return Ok(None), // no result to observe
-        };;
+        };
 
         let system_object = serde_json::from_str::<SystemObject>(&value)
             .context("Failed to deserialize 'value' parameter")?;

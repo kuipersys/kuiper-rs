@@ -22,20 +22,20 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
-$Binary   = Join-Path $RepoRoot 'target\debug\coordinator.exe'
+$Binary   = Join-Path $RepoRoot 'target\debug\kuiper-coordinator.exe'
 
 # ── Build ──────────────────────────────────────────────────────────────────────
 
 if (-not $NoBuild) {
-    Write-Host "Building coordinator…" -ForegroundColor Cyan
+    Write-Host "Building kuiper-coordinator…" -ForegroundColor Cyan
     Push-Location $RepoRoot
-    cargo build -p coordinator
+    cargo build -p kuiper-coordinator
     if ($LASTEXITCODE -ne 0) { Pop-Location; exit 1 }
     Pop-Location
 }
 
 if (-not (Test-Path $Binary)) {
-    Write-Error "Binary not found at $Binary. Run without -NoBuild or run 'cargo build -p coordinator' first."
+    Write-Error "Binary not found at $Binary. Run without -NoBuild or run 'cargo build -p kuiper-coordinator' first."
     exit 1
 }
 
@@ -48,7 +48,7 @@ $env:RUST_LOG             = $LogLevel
 # ── Start ──────────────────────────────────────────────────────────────────────
 
 Write-Host ""
-Write-Host "=== Starting coordinator ===" -ForegroundColor Green
+Write-Host "=== Starting kuiper-coordinator ===" -ForegroundColor Green
 Write-Host "  binary     : $Binary"
 Write-Host "  server url : $ServerUrl"
 Write-Host "  store      : $StorePath"

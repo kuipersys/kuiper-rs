@@ -260,6 +260,8 @@ if ($list2.Ok) {
     Fail "LIST after partial delete" "HTTP $($list2.Status): $($list2.Error)"
 }
 
+Start-Sleep -Seconds 5  # wait a moment before cleanup to ensure timestamps differ
+
 # ── Phase 5: Cleanup ───────────────────────────────────────────────────────────
 
 Write-Section "Cleanup"
