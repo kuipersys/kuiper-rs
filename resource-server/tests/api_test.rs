@@ -220,7 +220,7 @@ async fn test_list_empty_returns_empty_array() {
 
 // ─── DELETE ──────────────────────────────────────────────────────────────────
 
-/// After DELETE the resource is soft-deleted and a subsequent GET returns 404.
+/// After DELETE the resource is immediately hard-deleted (no finalizers) and a subsequent GET returns 404.
 #[actix_web::test]
 async fn test_delete_then_get_is_404() {
     let (rt, subs, sub_map) = build_runtime();
@@ -243,6 +243,7 @@ async fn test_delete_then_get_is_404() {
         .uri("/api/mygroup/default/Widget/doomed")
         .to_request();
     let del_resp = test::call_service(&app, del).await;
+    // No finalizers → immediate hard-delete → 204 No Content
     assert_eq!(del_resp.status(), StatusCode::NO_CONTENT);
 
     // Should be gone now

@@ -170,12 +170,11 @@ pub async fn api_handler(rt: web::Data<Arc<KuiperRuntime>>, req: HttpRequest) ->
         .insert("namespace".to_string(), descriptor.namespace.clone());
 
     match rt.execute(&mut ctx).await {
-        Ok(result) => match command_name {
-            "delete" => HttpResponse::NoContent().finish(),
-            _ => match result {
-                Some(value) => HttpResponse::Ok().json(value),
-                None => HttpResponse::NoContent().finish(),
-            },
+        Ok(result) => match result {
+            // Soft-delete: resource has finalizers, deletion is pending coordinator reconciliation.
+            Some(value) => HttpResponse::Accepted().json(value),
+            // Hard-delete: no finalizers, resource removed immediately.
+            None => HttpResponse::NoContent().finish(),
         },
         Err(e) => kuiper_error_response(e),
     }
