@@ -26,25 +26,23 @@ use futures_util::FutureExt as _;
 ///
 /// # Examples
 ///
-/// ```
-/// # use actix_web::App;
-/// use actix_web_lab::middleware::CatchPanic;
+/// ```no_run
+/// use actix_web::App;
+/// use resource_server::middleware::catch_panic::CatchPanic;
 ///
-/// App::new().wrap(CatchPanic::default())
-///     # ;
+/// App::new().wrap(CatchPanic::default());
 /// ```
 ///
 /// ```no_run
-/// # use actix_web::App;
+/// use actix_web::App;
 /// use actix_web::middleware::{Logger, NormalizePath};
-/// use actix_web_lab::middleware::CatchPanic;
+/// use resource_server::middleware::catch_panic::CatchPanic;
 ///
 /// // recommended wrap order
 /// App::new()
 ///     .wrap(NormalizePath::default())
 ///     .wrap(CatchPanic::default()) // <- after everything except logger
-///     .wrap(Logger::default())
-///     # ;
+///     .wrap(Logger::default());
 /// ```
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
@@ -88,7 +86,7 @@ where
             .map(move |res| match res {
                 Ok(Ok(res)) => Ok(res),
                 Ok(Err(svc_err)) => Err(svc_err),
-                Err(_panic_err) => Err(error::ErrorInternalServerError("Internal Server Error")),
+                Err(_panic_err) => Err(error::ErrorInternalServerError("")),
             })
             .boxed_local()
     }

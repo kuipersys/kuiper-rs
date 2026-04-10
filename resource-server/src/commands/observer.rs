@@ -58,8 +58,8 @@ impl ExecutableCommand for SetObserverCommand {
 
         let resource = format!("{}/{}", system_object.api_version, system_object.kind);
 
-        let ctx_value = serde_json::to_value(&system_object)
-            .context("Failed to serialize system object")?;
+        let ctx_value =
+            serde_json::to_value(&system_object).context("Failed to serialize system object")?;
 
         for entry in self.subscribers.iter() {
             let client_id = entry.key();
@@ -75,12 +75,15 @@ impl ExecutableCommand for SetObserverCommand {
                 continue;
             }
 
-            if let Err(e) = entry.value().send(crate::actors::models::ServerMessage::Event {
-                resource: resource.clone(),
-                namespace: system_object.metadata.namespace.clone(),
-                action: ctx.command_name.clone(),
-                object: ctx_value.clone(),
-            }) {
+            if let Err(e) = entry
+                .value()
+                .send(crate::actors::models::ServerMessage::Event {
+                    resource: resource.clone(),
+                    namespace: system_object.metadata.namespace.clone(),
+                    action: ctx.command_name.clone(),
+                    object: ctx_value.clone(),
+                })
+            {
                 tracing::warn!("Failed to notify subscriber {}: {}", client_id, e);
             }
         }
