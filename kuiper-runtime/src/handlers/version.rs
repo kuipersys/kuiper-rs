@@ -1,7 +1,7 @@
-use async_trait::async_trait;
-use kuiper_runtime_sdk::command::{
+use crate::command::{
     CommandContext, CommandHandler, CommandResult, CommandType, ExecutableCommand,
 };
+use async_trait::async_trait;
 
 fn truncate(s: &str, max_chars: usize) -> &str {
     match s.char_indices().nth(max_chars) {

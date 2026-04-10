@@ -1,10 +1,12 @@
 use std::{sync::Arc, time::Duration};
 
+use crate::command::{
+    CommandContext, CommandHandler, CommandResult, CommandType, ExecutableCommand,
+};
 use anyhow::Context;
 use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD, Engine};
-use kuiper_runtime_sdk::{
-    command::{CommandContext, CommandHandler, CommandResult, CommandType, ExecutableCommand},
+use kuiper_types::{
     error::KuiperError,
     model::admission_policy::{AdmissionOperation, FailurePolicy},
 };
@@ -49,13 +51,13 @@ impl CommandHandler for AdmissionWebhookCommand {
         CommandType::Validator
     }
 
-    fn as_validator(&self) -> Option<&dyn kuiper_runtime_sdk::command::ValidationCommand> {
+    fn as_validator(&self) -> Option<&dyn crate::command::ValidationCommand> {
         Some(self)
     }
 }
 
 #[async_trait]
-impl kuiper_runtime_sdk::command::ValidationCommand for AdmissionWebhookCommand {
+impl crate::command::ValidationCommand for AdmissionWebhookCommand {
     async fn validate(&self, ctx: &CommandContext) -> CommandResult {
         // Skip internal writes (bootstrap, reconcile, etc.).
         if ctx.is_internal {
@@ -262,9 +264,9 @@ impl kuiper_runtime_sdk::command::ValidationCommand for AdmissionWebhookCommand 
 
 /// Builds HTTP auth headers from a `ServiceAuth` configuration.
 fn build_auth_headers(
-    auth: &kuiper_runtime_sdk::model::service_endpoint::ServiceAuth,
+    auth: &kuiper_types::model::service_endpoint::ServiceAuth,
 ) -> anyhow::Result<HeaderMap> {
-    use kuiper_runtime_sdk::model::service_endpoint::ServiceAuth;
+    use kuiper_types::model::service_endpoint::ServiceAuth;
 
     let mut headers = HeaderMap::new();
 

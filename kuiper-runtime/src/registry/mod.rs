@@ -5,14 +5,12 @@ pub use core::RESERVED_UID_PREFIX;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::data::TransactionalKeyValueStore;
 use anyhow::Context;
-use kuiper_runtime_sdk::{
-    data::TransactionalKeyValueStore,
-    model::{
-        admission_policy::AdmissionPolicy,
-        resource_definition::{ResourceDefinition, ResourceDefinitionVersion},
-        service_endpoint::ServiceEndpoint,
-    },
+use kuiper_types::model::{
+    admission_policy::AdmissionPolicy,
+    resource_definition::{ResourceDefinition, ResourceDefinitionVersion},
+    service_endpoint::ServiceEndpoint,
 };
 use tokio::sync::RwLock;
 

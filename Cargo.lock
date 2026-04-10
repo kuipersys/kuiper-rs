@@ -1512,7 +1512,6 @@ dependencies = [
  "async-trait",
  "clap",
  "kuiper-runtime",
- "kuiper-runtime-sdk",
  "serde",
  "serde_json",
  "tokio",
@@ -1529,7 +1528,6 @@ dependencies = [
  "async-trait",
  "colored",
  "kuiper-runtime",
- "kuiper-runtime-sdk",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -1547,7 +1545,7 @@ dependencies = [
  "base64",
  "chrono",
  "jsonschema",
- "kuiper-runtime-sdk",
+ "kuiper-types",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
@@ -1557,23 +1555,18 @@ dependencies = [
  "tracing",
  "uuid",
  "vergen",
+ "walkdir",
 ]
 
 [[package]]
-name = "kuiper-runtime-sdk"
+name = "kuiper-types"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "async-trait",
  "chrono",
- "reqwest 0.12.28",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
- "tokio",
- "tokio-util",
  "uuid",
- "walkdir",
 ]
 
 [[package]]
@@ -2289,7 +2282,7 @@ dependencies = [
  "dashmap",
  "futures-util",
  "kuiper-runtime",
- "kuiper-runtime-sdk",
+ "kuiper-types",
  "notify",
  "opentelemetry",
  "opentelemetry-appender-tracing",
@@ -2298,6 +2291,7 @@ dependencies = [
  "opentelemetry-stdout",
  "opentelemetry_sdk",
  "pin-project-lite",
+ "resource-server-api",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -2308,6 +2302,27 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "vergen",
+]
+
+[[package]]
+name = "resource-server-api"
+version = "0.1.0"
+dependencies = [
+ "kuiper-types",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "resource-server-client"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "kuiper-types",
+ "reqwest 0.12.28",
+ "resource-server-api",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]

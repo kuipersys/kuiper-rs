@@ -1,6 +1,8 @@
-mod command;
+pub mod command;
 mod config;
 mod constants;
+pub mod data;
+mod handlers;
 pub mod registry;
 pub mod service;
 
@@ -13,14 +15,14 @@ pub use service::HostedService;
 
 use std::sync::Arc;
 
-use command::{
+use crate::{
+    command::{CommandContext, CommandDispatcher, CommandHandler, CommandResult},
+    data::TransactionalKeyValueStore,
+};
+use handlers::{
     admission::AdmissionWebhookCommand, delete::DeleteCommand, echo::EchoCommand, get::GetCommand,
     list::ListCommand, reconcile::ReconcileCommand, set::SetCommand,
     validate::SchemaValidationCommand, version::VersionCommand, CommandExecutor,
-};
-use kuiper_runtime_sdk::{
-    command::{CommandContext, CommandDispatcher, CommandHandler, CommandResult},
-    data::TransactionalKeyValueStore,
 };
 use tokio::sync::RwLock;
 

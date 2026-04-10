@@ -107,8 +107,8 @@ fn default_operations() -> Vec<AdmissionOperation> {
 /// runtime calls the configured webhook before committing the change. A non-2xx
 /// response (or network failure with `failurePolicy: Fail`) rejects the operation.
 ///
-/// Stored under `ext.api.cloud-api.dev/v1alpha1/AdmissionPolicy/{name}` in the
-/// `global` namespace.
+/// Internal writes (`ctx.is_internal == true`) bypass admission entirely so
+/// bootstrapped system resources are never blocked.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdmissionPolicy {
     #[serde(rename = "apiVersion")]

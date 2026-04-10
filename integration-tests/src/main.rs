@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use colored::*;
 use kuiper_runtime::KuiperRuntimeBuilder;
-use kuiper_runtime_sdk::{
+use kuiper_runtime::{
     command::{
         CommandContext, CommandHandler, CommandResult, CommandType, ExecutableCommand,
         MutationCommand, ValidationCommand,

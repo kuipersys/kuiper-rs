@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use kuiper_runtime_sdk::model::{
+use kuiper_types::model::{
     resource::SystemObjectMetadata,
     resource_definition::{
         ResourceDefinition, ResourceDefinitionNames, ResourceDefinitionSpec,

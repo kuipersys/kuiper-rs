@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use clap::Parser;
 use cmd::Cli;
+use kuiper_runtime::data::file_system_store::FileSystemStore;
 use kuiper_runtime::{KuiperConfig, KuiperRuntimeBuilder};
-use kuiper_runtime_sdk::data::file_system_store::FileSystemStore;
 #[tokio::main]
 
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

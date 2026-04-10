@@ -1,8 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-    "kuiper-runtime-sdk",
+    "kuiper-types",
     "kuiper-runtime",
+    "resource-server-api",
+    "resource-server-client",
     "kr",
     "resource-server",
     "integration-tests"
@@ -14,8 +16,10 @@ members = [
 # 
 
 [workspace.dependencies]
-kuiper-runtime-sdk = { path = "./kuiper-runtime-sdk" }
+kuiper-types = { path = "./kuiper-types" }
 kuiper-runtime = { path = "./kuiper-runtime" }
+resource-server-api = { path = "./resource-server-api" }
+resource-server-client = { path = "./resource-server-client" }
 
 # For Web Servers and Middleware
 actix-web = "4.13.0"

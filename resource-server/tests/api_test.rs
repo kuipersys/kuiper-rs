@@ -7,8 +7,7 @@
 use actix_web::http::StatusCode;
 use actix_web::{test, App};
 use dashmap::DashMap;
-use kuiper_runtime::KuiperRuntimeBuilder;
-use kuiper_runtime_sdk::data::InMemoryStore;
+use kuiper_runtime::{data::InMemoryStore, KuiperRuntimeBuilder};
 use resource_server::{
     commands::observer::SetObserverCommand, configure_app, SubscriberMap, SubscriptionMap,
 };

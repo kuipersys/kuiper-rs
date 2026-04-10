@@ -7,8 +7,9 @@ publish = false
 authors = ["Travis Sharp <travis@kuipersys.com>"]
 
 [dependencies]
-kuiper-runtime-sdk.workspace = true
+kuiper-types.workspace = true
 kuiper-runtime.workspace = true
+resource-server-api.workspace = true
 
 thiserror.workspace = true
 anyhow.workspace = true

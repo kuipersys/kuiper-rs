@@ -1,0 +1,11 @@
+[package]
+name = "resource-server-api"
+version = "0.1.0"
+edition = "2021"
+publish = false
+authors = ["Travis Sharp <travis@kuipersys.com>"]
+
+[dependencies]
+kuiper-types.workspace = true
+serde.workspace = true
+serde_json.workspace = true

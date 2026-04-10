@@ -1,104 +1,131 @@
-pub mod admission;
-pub mod delete;
-pub mod echo;
-pub mod get;
-pub mod list;
-pub mod reconcile;
-pub mod set;
-pub mod validate;
-pub mod version;
-
-use anyhow::Ok;
 use async_trait::async_trait;
-use kuiper_runtime_sdk::command::{
-    CommandContext, CommandDispatcher, CommandHandler, CommandResult, CommandType,
-};
-use serde_json::Value;
-use std::{collections::HashMap, sync::Arc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use tokio_util::sync::CancellationToken;
+use uuid::Uuid;
 
-pub struct CommandExecutor {
-    handlers: HashMap<String, Vec<Arc<dyn CommandHandler>>>,
+use kuiper_types::model::security::UserId;
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CommandContext {
+    pub command_name: String,
+    pub parameters: HashMap<String, serde_json::Value>,
+    pub metadata: HashMap<String, String>,
+    pub activity_id: Uuid,
+    pub caller_id: Option<UserId>,
+
+    /// Marks the command as originating from an internal / privileged pathway.
+    /// This flag is never serialized so it cannot be injected via external payloads.
+    /// When `true`, guards that restrict system-reserved groups or UIDs are bypassed.
+    #[serde(skip)]
+    pub is_internal: bool,
+
+    #[serde(skip)]
+    pub cancellation_token: CancellationToken,
 }
 
-impl CommandExecutor {
-    pub fn new() -> Self {
-        Self {
-            handlers: HashMap::new(),
+impl CommandContext {
+    pub fn get_string_param(&self, name: &str) -> anyhow::Result<String> {
+        self.parameters
+            .get(name)
+            .ok_or_else(|| anyhow::anyhow!("Missing required parameter: {}", name))?
+            .as_str()
+            .map(str::to_owned)
+            .ok_or_else(|| {
+                anyhow::anyhow!("Invalid type for parameter '{}'; expected string", name)
+            })
+    }
+
+    pub fn get_param(&self, name: &str) -> anyhow::Result<String> {
+        let parameter = self
+            .parameters
+            .get(name)
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("Missing required parameter: {}", name));
+
+        if let Ok(param) = parameter {
+            return Ok(serde_json::to_string(&param).unwrap());
+        }
+
+        return Err(anyhow::anyhow!("Missing required parameter: {}", name));
+    }
+}
+
+// Optional: Standardized Result Type
+pub type CommandResult = anyhow::Result<Option<serde_json::Value>>;
+
+#[async_trait]
+pub trait CommandDispatcher: Send + Sync {
+    async fn dispatch(&self, ctx: &mut CommandContext) -> CommandResult;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CommandType {
+    /// Mutator commands are responsible for changing the state of the system.
+    /// They are executed first in the command pipeline.
+    Mutator,
+
+    /// Validator commands are responsible for validating the state of the system.
+    /// They are executed after mutator commands and before finalizer commands.
+    Validator,
+
+    /// Internal commands are used for internal operations and are not exposed to users.
+    /// They are executed after validator commands and before observer commands.
+    Internal,
+
+    /// Observer commands are used for observing the state of the system.
+    /// They are executed last in the command pipeline.
+    Observer,
+}
+
+impl CommandType {
+    pub fn priority(&self) -> u8 {
+        match self {
+            CommandType::Mutator => 0,
+            CommandType::Validator => 1,
+            CommandType::Internal => 2,
+            CommandType::Observer => 4,
         }
     }
 
-    pub fn register_handler(&mut self, name: &str, handler: Arc<dyn CommandHandler>) {
-        if let Some(existing_handlers) = self.handlers.get_mut(name) {
-            existing_handlers.push(handler);
-            return;
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CommandType::Mutator => "mutator",
+            CommandType::Validator => "validator",
+            CommandType::Internal => "internal",
+            CommandType::Observer => "observer",
         }
-
-        self.handlers.insert(name.to_string(), vec![handler]);
-    }
-
-    async fn execute_handler(
-        &self,
-        ctx: &mut CommandContext,
-        handler: &Arc<dyn CommandHandler>,
-    ) -> CommandResult {
-        if let Some(validator) = handler.as_validator() {
-            validator.validate(ctx).await?;
-
-            return Ok(None);
-        }
-
-        if let Some(validator) = handler.as_mutator() {
-            validator.mutate(ctx).await?;
-
-            return Ok(None);
-        }
-
-        if let Some(executable) = handler.as_executable() {
-            return Ok(executable.execute(ctx).await?);
-        }
-
-        Err(anyhow::Error::new(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            format!(
-                "Handler does not implement any command type: {}",
-                handler.get_type().as_str()
-            ),
-        )))
     }
 }
 
 #[async_trait]
-impl CommandDispatcher for CommandExecutor {
-    async fn dispatch(&self, ctx: &mut CommandContext) -> CommandResult {
-        match self.handlers.get(&ctx.command_name) {
-            Some(handlers) => {
-                let mut final_result: Option<Value> = None;
+pub trait ValidationCommand: Send + Sync {
+    async fn validate(&self, ctx: &CommandContext) -> CommandResult;
+}
 
-                let mut sorted_handlers = handlers.clone(); // or clone the Arc if needed
+#[async_trait]
+pub trait MutationCommand: Send + Sync {
+    async fn mutate(&self, ctx: &mut CommandContext) -> CommandResult;
+}
 
-                sorted_handlers
-                    .sort_by(|a, b| a.get_type().priority().cmp(&b.get_type().priority()));
+#[async_trait]
+pub trait ExecutableCommand: Send + Sync {
+    async fn execute(&self, ctx: &CommandContext) -> CommandResult;
+}
 
-                for handler in sorted_handlers {
-                    let result = self.execute_handler(ctx, &handler).await?;
+#[async_trait]
+pub trait CommandHandler: Send + Sync {
+    fn get_type(&self) -> CommandType;
 
-                    // Take the first non-None result for internal commands, everything else should
-                    // simply be ignored
-                    if final_result.is_none() && handler.get_type() == CommandType::Internal {
-                        final_result = result.clone();
-                        // Pass the result to subsequent handlers (like Observers) via context
-                        if let Some(ref value) = result {
-                            ctx.parameters.insert("value".to_string(), value.clone());
-                        }
-                    }
-                }
+    fn as_validator(&self) -> Option<&dyn ValidationCommand> {
+        None
+    }
 
-                return Ok(final_result);
-            }
-            None => Err(anyhow::Error::new(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                format!("Command handler not found for: {}", ctx.command_name),
-            ))),
-        }
+    fn as_mutator(&self) -> Option<&dyn MutationCommand> {
+        None
+    }
+
+    fn as_executable(&self) -> Option<&dyn ExecutableCommand> {
+        None
     }
 }

@@ -12,9 +12,6 @@ pub enum ServiceAuth {
     None,
 
     /// Mutual-TLS using the cluster's own client certificate.
-    /// The runtime presents its client cert (loaded from env/config); the
-    /// target service validates it against the shared cluster CA.
-    /// No additional fields required.
     ClusterCert,
 
     /// Bearer token read from the named environment variable at call time.
@@ -86,9 +83,6 @@ fn default_timeout() -> u32 {
 
 /// A named, reusable endpoint that other resources (e.g. `AdmissionPolicy`)
 /// reference by name rather than embedding URLs directly.
-///
-/// Stored under `ext.api.cloud-api.dev/v1alpha1/ServiceEndpoint/{name}` in the
-/// `global` namespace and resolved at call time by the runtime.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceEndpoint {
     #[serde(rename = "apiVersion")]

@@ -5,8 +5,8 @@
 use actix_web::middleware::Logger;
 use actix_web::{App, HttpServer};
 use dashmap::DashMap;
+use kuiper_runtime::data::file_system_store::FileSystemStore;
 use kuiper_runtime::{KuiperConfig, KuiperRuntimeBuilder};
-use kuiper_runtime_sdk::data::file_system_store::FileSystemStore;
 use resource_server::{
     commands::observer::{DeleteObserverCommand, SetObserverCommand},
     configure_app, SubscriberMap, SubscriptionMap,

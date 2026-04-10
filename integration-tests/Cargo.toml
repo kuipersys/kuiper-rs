@@ -10,7 +10,6 @@ name = "integration_tests"
 path = "src/main.rs"
 
 [dependencies]
-kuiper-runtime-sdk.workspace = true
 kuiper-runtime.workspace = true
 
 tokio.workspace = true

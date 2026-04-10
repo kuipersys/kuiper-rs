@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use anyhow::Context;
-use async_trait::async_trait;
-use kuiper_runtime_sdk::{
+use crate::{
     command::{CommandContext, CommandHandler, CommandResult, CommandType, ExecutableCommand},
     data::TransactionalKeyValueStore,
-    model::resource::SystemObject,
 };
+use anyhow::Context;
+use async_trait::async_trait;
+use kuiper_types::model::resource::SystemObject;
 use tokio::sync::RwLock;
 use tracing::{self, instrument};
 

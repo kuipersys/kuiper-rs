@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use kuiper_runtime_sdk::command::CommandContext;
+use kuiper_runtime::command::CommandContext;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
