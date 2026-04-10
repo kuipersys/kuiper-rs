@@ -124,6 +124,7 @@ async fn test_command_context_creation() -> TestResult {
         parameters: params,
         metadata,
         activity_id: Uuid::new_v4(),
+        caller_id: None,
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
@@ -148,6 +149,8 @@ async fn test_echo_command() -> TestResult {
         parameters: HashMap::new(),
         metadata: HashMap::new(),
         activity_id: Uuid::new_v4(),
+        caller_id: None,
+
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
@@ -202,6 +205,7 @@ async fn test_set_command() -> TestResult {
             m
         },
         activity_id: Uuid::new_v4(),
+        caller_id: None,
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
@@ -248,6 +252,7 @@ async fn test_set_then_get() -> TestResult {
             m
         },
         activity_id: Uuid::new_v4(),
+        caller_id: None,
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
@@ -279,6 +284,7 @@ async fn test_set_then_get() -> TestResult {
             m
         },
         activity_id: Uuid::new_v4(),
+        caller_id: None,
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
@@ -315,6 +321,7 @@ async fn test_version_command() -> TestResult {
         parameters: HashMap::new(),
         metadata: HashMap::new(),
         activity_id: Uuid::new_v4(),
+        caller_id: None,
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
@@ -353,6 +360,7 @@ async fn test_list_empty() -> TestResult {
             m
         },
         activity_id: Uuid::new_v4(),
+        caller_id: None,
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
@@ -408,6 +416,7 @@ async fn test_delete_command() -> TestResult {
             m
         },
         activity_id: Uuid::new_v4(),
+        caller_id: None,
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
@@ -431,6 +440,8 @@ async fn test_delete_command() -> TestResult {
             m
         },
         activity_id: Uuid::new_v4(),
+        caller_id: None,
+
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
@@ -457,6 +468,7 @@ async fn test_nonexistent_command() -> TestResult {
         parameters: HashMap::new(),
         metadata: HashMap::new(),
         activity_id: Uuid::new_v4(),
+        caller_id: None,
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
@@ -484,6 +496,7 @@ async fn test_activity_id_tracking() -> TestResult {
         parameters: HashMap::new(),
         metadata: HashMap::new(),
         activity_id,
+        caller_id: None,
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
@@ -533,6 +546,7 @@ async fn test_multiple_resources_list() -> TestResult {
                 m
             },
             activity_id: Uuid::new_v4(),
+            caller_id: None,
             cancellation_token: CancellationToken::new(),
             is_internal: false,
         };
@@ -553,6 +567,7 @@ async fn test_multiple_resources_list() -> TestResult {
             m
         },
         activity_id: Uuid::new_v4(),
+        caller_id: None,
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };

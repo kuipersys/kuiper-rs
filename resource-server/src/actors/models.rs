@@ -24,6 +24,10 @@ pub enum ServerMessage {
     Pong,
     #[serde(rename = "hello")]
     Hello { client_id: String, message: String },
+    #[serde(rename = "subscribed")]
+    Subscribed { resource: String },
+    #[serde(rename = "rpc_result")]
+    RpcResult { value: Value },
     #[serde(rename = "error")]
     Error { message: String },
 }

@@ -9,19 +9,25 @@ use kuiper_runtime_sdk::{
 };
 use tokio::sync::RwLock;
 
-use crate::SubscriberMap;
+use crate::{SubscriberMap, SubscriptionMap};
 
 pub struct SetObserverCommand {
     store: Arc<RwLock<dyn TransactionalKeyValueStore>>,
     subscribers: SubscriberMap,
+    subscription_map: SubscriptionMap,
 }
 
 impl SetObserverCommand {
     pub fn new(
         store: Arc<RwLock<dyn TransactionalKeyValueStore>>,
         subscribers: SubscriberMap,
+        subscription_map: SubscriptionMap,
     ) -> Self {
-        Self { store, subscribers }
+        Self {
+            store,
+            subscribers,
+            subscription_map,
+        }
     }
 
     pub fn as_handler(&self) -> &dyn CommandHandler {
@@ -42,7 +48,6 @@ impl CommandHandler for SetObserverCommand {
 
 #[async_trait]
 impl ExecutableCommand for SetObserverCommand {
-    // This command is executed in the context of the Kuiper runtime
     async fn execute(&self, ctx: &CommandContext) -> CommandResult {
         let value = ctx
             .get_param("value")
@@ -53,23 +58,33 @@ impl ExecutableCommand for SetObserverCommand {
 
         let resource = format!("{}/{}", system_object.api_version, system_object.kind);
 
-        let ctx_str_value =
-            serde_json::to_string(&system_object).context("Failed to serialize system object")?;
+        let ctx_value = serde_json::to_value(&system_object)
+            .context("Failed to serialize system object")?;
 
-        let ctx_value = serde_json::from_str::<serde_json::Value>(&ctx_str_value)
-            .context("Failed to deserialize system object to JSON")?;
+        for entry in self.subscribers.iter() {
+            let client_id = entry.key();
 
-        for subscriber in self.subscribers.iter() {
-            if let Err(e) = subscriber.send(crate::actors::models::ServerMessage::Event {
+            // Only notify clients that have subscribed to this resource type.
+            let is_subscribed = self
+                .subscription_map
+                .get(client_id)
+                .map(|subs| subs.contains(&resource))
+                .unwrap_or(false);
+
+            if !is_subscribed {
+                continue;
+            }
+
+            if let Err(e) = entry.value().send(crate::actors::models::ServerMessage::Event {
                 resource: resource.clone(),
                 namespace: system_object.metadata.namespace.clone(),
                 action: ctx.command_name.clone(),
                 object: ctx_value.clone(),
             }) {
-                return Err(anyhow::anyhow!("Failed to notify subscriber: {}", e));
+                tracing::warn!("Failed to notify subscriber {}: {}", client_id, e);
             }
         }
 
-        return Ok(None);
+        Ok(None)
     }
 }

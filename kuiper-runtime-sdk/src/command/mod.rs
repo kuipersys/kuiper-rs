@@ -4,12 +4,15 @@ use std::collections::HashMap;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+use crate::model::security::UserId;
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CommandContext {
     pub command_name: String,
     pub parameters: HashMap<String, serde_json::Value>,
     pub metadata: HashMap<String, String>,
     pub activity_id: Uuid,
+    pub caller_id: Option<UserId>,
 
     /// Marks the command as originating from an internal / privileged pathway.
     /// This flag is never serialized so it cannot be injected via external payloads.

@@ -38,6 +38,8 @@ mod services;
 
 type ClientId = String;
 type SubscriberMap = Arc<DashMap<ClientId, UnboundedSender<ServerMessage>>>;
+// Maps each client ID to the list of resource types it has subscribed to (e.g. "apiVersion/Kind").
+type SubscriptionMap = Arc<DashMap<ClientId, Vec<String>>>;
 
 fn kuiper_error_response(e: anyhow::Error) -> HttpResponse {
     if let Some(kuiper_err) = e.downcast_ref::<KuiperError>() {
@@ -77,6 +79,7 @@ async fn version_handler(
         parameters: HashMap::new(),
         metadata: HashMap::new(),
         activity_id: uuid::Uuid::new_v4(),
+        caller_id: None,
         cancellation_token: token,
         is_internal: false,
     };
@@ -101,44 +104,41 @@ async fn api_put_handler(
         .or_else(|| full_path.strip_prefix("/api"))
         .unwrap_or(full_path);
 
-    let descriptor = ResourceDescriptor::parse(path);
+    let descriptor = match ResourceDescriptor::parse(path) {
+        Ok(d) => d,
+        Err(e) => {
+            return HttpResponse::BadRequest()
+                .body(format!("Invalid path: {}, {}", path, e))
+        }
+    };
 
-    if descriptor.is_err() {
-        return HttpResponse::BadRequest().body(format!(
-            "Invalid path: {}, {}",
-            path,
-            descriptor.err().unwrap()
-        ));
-    }
-
-    let descriptor = descriptor.unwrap();
+    let name = match &descriptor.name {
+        Some(n) => n.clone(),
+        None => return HttpResponse::BadRequest().body("PUT requires a resource name"),
+    };
 
     let mut ctx = CommandContext {
         command_name: "set".to_string(),
         parameters: HashMap::new(),
         metadata: HashMap::new(),
         activity_id: uuid::Uuid::new_v4(),
+        caller_id: None,
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
 
-    // Read the body of the request
     ctx.parameters.insert("value".to_string(), body.clone());
     ctx.parameters.insert(
         "resource".to_string(),
         serde_json::json!(format!(
             "{}/{}/{}",
-            descriptor.group,
-            descriptor.kind,
-            descriptor.name.unwrap()
+            descriptor.group, descriptor.kind, name
         )),
     );
     ctx.metadata
         .insert("namespace".to_string(), descriptor.namespace.clone());
 
-    let result = rt.execute(&mut ctx).await;
-
-    match result {
+    match rt.execute(&mut ctx).await {
         Ok(Some(value)) => HttpResponse::Ok().json(value),
         Ok(None) => HttpResponse::Ok().finish(),
         Err(e) => kuiper_error_response(e),
@@ -153,57 +153,67 @@ async fn api_handler(rt: web::Data<Arc<KuiperRuntime>>, req: HttpRequest) -> imp
         .or_else(|| full_path.strip_prefix("/api"))
         .unwrap_or(full_path);
 
-    let descriptor = ResourceDescriptor::parse(path);
-
-    if descriptor.is_err() {
-        return HttpResponse::BadRequest().body(format!(
-            "Invalid path: {}, {}",
-            path,
-            descriptor.err().unwrap()
-        ));
-    }
-
-    let method = req.method();
-    let command_name = match method.as_str() {
-        "GET" => "get",
-        "DELETE" => "delete",
-        _ => {
-            return HttpResponse::MethodNotAllowed().body(format!("Method {} not allowed", method))
+    let descriptor = match ResourceDescriptor::parse(path) {
+        Ok(d) => d,
+        Err(e) => {
+            return HttpResponse::BadRequest()
+                .body(format!("Invalid path: {}, {}", path, e))
         }
     };
 
-    let descriptor = descriptor.unwrap();
+    let method = req.method().as_str();
+
+    // Determine command and resource path based on method and presence of name.
+    let (command_name, resource_path) = match method {
+        "GET" => match &descriptor.name {
+            Some(name) => (
+                "get",
+                format!("{}/{}/{}", descriptor.group, descriptor.kind, name),
+            ),
+            None => (
+                "list",
+                format!("{}/{}", descriptor.group, descriptor.kind),
+            ),
+        },
+        "DELETE" => match &descriptor.name {
+            Some(name) => (
+                "delete",
+                format!("{}/{}/{}", descriptor.group, descriptor.kind, name),
+            ),
+            None => {
+                return HttpResponse::BadRequest().body("DELETE requires a resource name")
+            }
+        },
+        _ => {
+            return HttpResponse::MethodNotAllowed()
+                .body(format!("Method {} not allowed", method))
+        }
+    };
 
     let mut ctx = CommandContext {
         command_name: command_name.to_string(),
         parameters: HashMap::new(),
         metadata: HashMap::new(),
         activity_id: uuid::Uuid::new_v4(),
+        caller_id: None,
         cancellation_token: CancellationToken::new(),
         is_internal: false,
     };
 
-    ctx.parameters.insert(
-        "resource".to_string(),
-        serde_json::json!(format!(
-            "{}/{}/{}",
-            descriptor.group,
-            descriptor.kind,
-            descriptor.name.unwrap()
-        )),
-    );
+    ctx.parameters
+        .insert("resource".to_string(), serde_json::json!(resource_path));
     ctx.metadata
         .insert("namespace".to_string(), descriptor.namespace.clone());
 
-    let result = rt.execute(&mut ctx).await;
-
-    if result.is_err() {
-        return kuiper_error_response(result.err().unwrap());
-    }
-
-    match command_name {
-        "delete" => HttpResponse::NoContent().finish(),
-        _ => HttpResponse::Ok().json(result.unwrap()),
+    match rt.execute(&mut ctx).await {
+        Ok(result) => match command_name {
+            "delete" => HttpResponse::NoContent().finish(),
+            _ => match result {
+                Some(value) => HttpResponse::Ok().json(value),
+                None => HttpResponse::NoContent().finish(),
+            },
+        },
+        Err(e) => kuiper_error_response(e),
     }
 }
 
@@ -220,6 +230,7 @@ async fn main() -> std::io::Result<()> {
     let store = FileSystemStore::new(&config.store_path).unwrap();
     let shared_store = Arc::new(tokio::sync::RwLock::new(store));
     let subscribers: SubscriberMap = Arc::new(DashMap::new());
+    let subscription_map: SubscriptionMap = Arc::new(DashMap::new());
 
     let mut builder = KuiperRuntimeBuilder::new(shared_store.clone());
     builder.register_handler(
@@ -227,6 +238,7 @@ async fn main() -> std::io::Result<()> {
         Arc::new(SetObserverCommand::new(
             shared_store.clone(),
             subscribers.clone(),
+            subscription_map.clone(),
         )),
     );
     let runtime = Arc::new(builder.build());
@@ -243,6 +255,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(runtime.clone()))
             .app_data(web::Data::new(subscribers.clone()))
+            .app_data(web::Data::new(subscription_map.clone()))
             .wrap(
                 actix_web::middleware::DefaultHeaders::new()
                     .add(("X-Content-Type-Options", "nosniff"))
@@ -274,5 +287,8 @@ async fn main() -> std::io::Result<()> {
     tracing::info!(">> Build Time: {}", env!("VERGEN_BUILD_TIMESTAMP"));
     tracing::info!(">> Staring Server On {}:{}", ip, port);
     tracing::info!(">> Press Ctrl-C to stop the server.");
-    server.run().await
+    server.run().await?;
+    service.stop().await.unwrap();
+
+    return Ok(());
 }

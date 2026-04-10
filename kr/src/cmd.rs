@@ -240,6 +240,7 @@ impl Command {
             parameters,
             metadata,
             activity_id: Uuid::new_v4(),
+            caller_id: None,
             is_internal,
             cancellation_token: CancellationToken::new(),
         }

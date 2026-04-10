@@ -35,6 +35,7 @@ impl ReconciliationService {
             parameters: std::collections::HashMap::new(),
             metadata: std::collections::HashMap::new(),
             activity_id: uuid::Uuid::new_v4(),
+            caller_id: None,
             cancellation_token: self.cancel_token.child_token(),
             is_internal: false,
         };
