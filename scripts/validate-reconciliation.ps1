@@ -76,8 +76,10 @@ function Invoke-Api {
             ErrorAction = 'Stop'
         }
         if ($JsonBody) { $params['Body'] = $JsonBody }
+        $statusVar = 0
+        $params['StatusCodeVariable'] = 'statusVar'
         $response = Invoke-RestMethod @params
-        return @{ Ok = $true; Status = 200; Body = $response }
+        return @{ Ok = $true; Status = [int]$statusVar; Body = $response }
     } catch {
         $statusCode = 0
         try { $statusCode = [int]$_.Exception.Response.StatusCode } catch {}
@@ -97,11 +99,13 @@ $VmGroup = 'compute.cloud-api.dev'
 $VmNs    = 'default'
 $VmKind  = 'VirtualMachine'
 
-function New-VmBody([string]$name, [int]$cpu = 2, [int]$mem = 8) {
+function New-VmBody([string]$name, [int]$cpu = 2, [int]$mem = 8, [string[]]$finalizers = @()) {
+    $metadata = @{ name = $name; namespace = $VmNs }
+    if ($finalizers.Count -gt 0) { $metadata['finalizers'] = $finalizers }
     @{
         apiVersion = "$VmGroup/v1alpha1"
         kind       = $VmKind
-        metadata   = @{ name = $name; namespace = $VmNs }
+        metadata   = $metadata
         spec       = @{ cpuCores = $cpu; memoryGb = $mem; diskGb = 50; image = 'ubuntu-22.04' }
     } | ConvertTo-Json -Depth 10 -Compress
 }
@@ -167,9 +171,24 @@ Write-Section "Create resources"
 $vm1 = 'vm-reconcile-01'
 $vm2 = 'vm-reconcile-02'
 
+# Force-delete any leftover records from a previous run (e.g. soft-deleted but
+# never hard-deleted by the coordinator). Strategy: clear finalizers via PUT so
+# the subsequent DELETE performs an immediate hard-delete.
+foreach ($vmName in @($vm1, $vm2)) {
+    $existing = Invoke-Api -Method GET -Url (Build-Url $VmGroup $VmNs $VmKind $vmName) -AllowFailure
+    if ($existing.Ok) {
+        # Strip finalizers so DELETE will hard-delete immediately.
+        Invoke-Api -Method PUT `
+            -Url      (Build-Url $VmGroup $VmNs $VmKind $vmName) `
+            -JsonBody (New-VmBody $vmName 2 8 @()) | Out-Null
+        Invoke-Api -Method DELETE -Url (Build-Url $VmGroup $VmNs $VmKind $vmName) -AllowFailure | Out-Null
+        Write-Host "  (force-deleted leftover: $vmName)" -ForegroundColor DarkGray
+    }
+}
+
 $r1 = Invoke-Api -Method PUT `
     -Url  (Build-Url $VmGroup $VmNs $VmKind $vm1) `
-    -JsonBody (New-VmBody $vm1 4 16)
+    -JsonBody (New-VmBody $vm1 4 16 @('kuiper.dev/reconcile'))
 if ($r1.Ok) { Pass "PUT $vm1 → 200" } else { Fail "PUT $vm1" "HTTP $($r1.Status): $($r1.Error)" }
 
 $r2 = Invoke-Api -Method PUT `
@@ -212,10 +231,13 @@ if ($list1.Ok) {
 Write-Section "Soft-delete (DELETE)"
 
 $d1 = Invoke-Api -Method DELETE -Url (Build-Url $VmGroup $VmNs $VmKind $vm1) -AllowFailure
-if ($d1.Status -eq 204 -or $d1.Ok) {
-    Pass "DELETE $vm1 → 204"
+if ($d1.Status -eq 202) {
+    Pass "DELETE $vm1 → 202 Accepted (soft-delete, pending coordinator reconciliation)"
+} elseif ($d1.Status -eq 204) {
+    Pass "DELETE $vm1 → 204 No Content (hard-delete, no finalizers)"
 } else {
-    Fail "DELETE $vm1" "HTTP $($d1.Status): $($d1.Error)"
+    $errDetail = if ($d1.ContainsKey('Error')) { $d1.Error } else { '' }
+    Fail "DELETE $vm1" "HTTP $($d1.Status): $errDetail"
 }
 
 # GET immediately after DELETE must return 200 with deletionTimestamp set.
@@ -266,19 +288,23 @@ Start-Sleep -Seconds 5  # wait a moment before cleanup to ensure timestamps diff
 
 Write-Section "Cleanup"
 
-# Soft-delete any remaining test resources via the API.
-# Hard-delete (removing files from the store) is the coordinator's responsibility —
-# this script does NOT invoke `kr` or any out-of-band tooling.
+# Strip finalizers then delete each test resource so DELETE performs an immediate hard-delete.
 foreach ($name in @($vm1, $vm2)) {
-    $del = Invoke-Api -Method DELETE -Url (Build-Url $VmGroup $VmNs $VmKind $name) -AllowFailure
-    if ($del.Status -eq 204 -or $del.Ok) {
-        Write-Host "  Soft-deleted $name (coordinator will hard-delete on next reconcile)" -ForegroundColor DarkGray
+    $existing = Invoke-Api -Method GET -Url (Build-Url $VmGroup $VmNs $VmKind $name) -AllowFailure
+    if ($existing.Ok) {
+        Invoke-Api -Method PUT `
+            -Url      (Build-Url $VmGroup $VmNs $VmKind $name) `
+            -JsonBody (New-VmBody $name 2 8 @()) | Out-Null
+        $del = Invoke-Api -Method DELETE -Url (Build-Url $VmGroup $VmNs $VmKind $name) -AllowFailure
+        if ($del.Status -eq 204 -or $del.Ok) {
+            Write-Host "  Hard-deleted $name" -ForegroundColor DarkGray
+        } else {
+            Write-Host "  Could not delete $name (HTTP $($del.Status)) — may already be gone" -ForegroundColor DarkGray
+        }
     } else {
-        Write-Host "  Could not delete $name (HTTP $($del.Status)) — may already be gone" -ForegroundColor DarkGray
+        Write-Host "  $name not found, skipping" -ForegroundColor DarkGray
     }
 }
-
-Write-Host "  (Hard-delete will be performed by the coordinator on its next reconcile pass.)" -ForegroundColor DarkGray
 
 # ── Summary ────────────────────────────────────────────────────────────────────
 

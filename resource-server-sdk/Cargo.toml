@@ -1,0 +1,14 @@
+[package]
+name = "resource-server-sdk"
+version = "0.1.0"
+edition = "2021"
+publish = false
+authors = ["Travis Sharp <travis@kuipersys.com>"]
+
+[dependencies]
+kuiper-types.workspace = true
+serde.workspace = true
+reqwest.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true

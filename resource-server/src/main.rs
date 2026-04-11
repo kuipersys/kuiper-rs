@@ -5,12 +5,13 @@
 use actix_web::middleware::Logger;
 use actix_web::{App, HttpServer};
 use dashmap::DashMap;
-use kuiper_runtime::{KuiperConfig, KuiperRuntimeBuilder};
-use kuiper_runtime_sdk::data::file_system_store::FileSystemStore;
+use kuiper_runtime::data::file_system_store::FileSystemStore;
+use kuiper_runtime::KuiperConfig;
 use resource_server::{
     commands::observer::{DeleteObserverCommand, SetObserverCommand},
     configure_app, SubscriberMap, SubscriptionMap,
 };
+use resource_server_runtime::KuiperRuntimeBuilder;
 use std::sync::Arc;
 use std::thread;
 
@@ -29,6 +30,7 @@ async fn main() -> std::io::Result<()> {
     let subscription_map: SubscriptionMap = Arc::new(DashMap::new());
 
     let mut builder = KuiperRuntimeBuilder::new(shared_store.clone());
+    builder.with_admission_webhooks();
     builder.register_handler(
         "set",
         Arc::new(SetObserverCommand::new(

@@ -1,0 +1,37 @@
+[package]
+name = "vmc-control-plane"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Example embedded control plane for VirtualMachineCluster resources"
+authors = ["Example <example@example.com>"]
+
+[[bin]]
+name = "vmc-control-plane"
+path = "src/main.rs"
+
+[dependencies]
+kuiper-types.workspace = true
+kuiper-runtime.workspace = true
+resource-server-runtime.workspace = true
+resource-server.workspace = true
+
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+actix-web.workspace = true
+
+tokio.workspace = true
+tokio-util.workspace = true
+async-trait.workspace = true
+
+dashmap.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[build-dependencies]
+anyhow.workspace = true
+vergen.workspace = true

@@ -2,11 +2,11 @@ use std::{str::FromStr, sync::Arc};
 
 use anyhow::Context;
 use async_trait::async_trait;
-use kuiper_runtime_sdk::{
+use kuiper_runtime::{
     command::{CommandContext, CommandHandler, CommandResult, CommandType, ExecutableCommand},
     data::TransactionalKeyValueStore,
-    model::resource::SystemObject,
 };
+use kuiper_types::model::resource::SystemObject;
 use tokio::sync::RwLock;
 
 use crate::{SubscriberMap, SubscriptionMap};

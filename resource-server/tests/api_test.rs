@@ -7,22 +7,18 @@
 use actix_web::http::StatusCode;
 use actix_web::{test, App};
 use dashmap::DashMap;
-use kuiper_runtime::KuiperRuntimeBuilder;
-use kuiper_runtime_sdk::data::InMemoryStore;
+use kuiper_runtime::data::InMemoryStore;
 use resource_server::{
     commands::observer::SetObserverCommand, configure_app, SubscriberMap, SubscriptionMap,
 };
+use resource_server_runtime::{KuiperRuntime, KuiperRuntimeBuilder};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-fn build_runtime() -> (
-    Arc<kuiper_runtime::KuiperRuntime>,
-    SubscriberMap,
-    SubscriptionMap,
-) {
+fn build_runtime() -> (Arc<KuiperRuntime>, SubscriberMap, SubscriptionMap) {
     let store = InMemoryStore::new();
     let shared_store = Arc::new(RwLock::new(store));
     let subscribers: SubscriberMap = Arc::new(DashMap::new());
@@ -221,7 +217,7 @@ async fn test_list_empty_returns_empty_array() {
 
 // ─── DELETE ──────────────────────────────────────────────────────────────────
 
-/// After DELETE the resource is soft-deleted and a subsequent GET returns 404.
+/// After DELETE the resource is immediately hard-deleted (no finalizers) and a subsequent GET returns 404.
 #[actix_web::test]
 async fn test_delete_then_get_is_404() {
     let (rt, subs, sub_map) = build_runtime();
@@ -244,6 +240,7 @@ async fn test_delete_then_get_is_404() {
         .uri("/api/mygroup/default/Widget/doomed")
         .to_request();
     let del_resp = test::call_service(&app, del).await;
+    // No finalizers → immediate hard-delete → 204 No Content
     assert_eq!(del_resp.status(), StatusCode::NO_CONTENT);
 
     // Should be gone now

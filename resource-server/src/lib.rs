@@ -12,9 +12,9 @@ use actix_web::{get, put, web, HttpRequest, HttpResponse, Responder};
 use actors::models::ServerMessage;
 use actors::ws_handler;
 use dashmap::DashMap;
-use kuiper_runtime::KuiperRuntime;
-use kuiper_runtime_sdk::command::CommandContext;
-use kuiper_runtime_sdk::error::KuiperError;
+use kuiper_runtime::command::CommandContext;
+use kuiper_types::error::KuiperError;
+use resource_server_runtime::KuiperRuntime;
 use routing::ResourceDescriptor;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -34,6 +34,9 @@ pub fn kuiper_error_response(e: anyhow::Error) -> HttpResponse {
             KuiperError::Conflict(msg) => HttpResponse::Conflict().body(msg.clone()),
             KuiperError::Invalid(msg) => HttpResponse::BadRequest().body(msg.clone()),
             KuiperError::Forbidden(msg) => HttpResponse::Forbidden().body(msg.clone()),
+            KuiperError::ServiceUnavailable(msg) => {
+                HttpResponse::ServiceUnavailable().body(msg.clone())
+            }
         };
     }
     HttpResponse::InternalServerError().body(e.to_string())
@@ -167,13 +170,10 @@ pub async fn api_handler(rt: web::Data<Arc<KuiperRuntime>>, req: HttpRequest) ->
         .insert("namespace".to_string(), descriptor.namespace.clone());
 
     match rt.execute(&mut ctx).await {
-        Ok(result) => match command_name {
-            "delete" => HttpResponse::NoContent().finish(),
-            _ => match result {
-                Some(value) => HttpResponse::Ok().json(value),
-                None => HttpResponse::NoContent().finish(),
-            },
-        },
+        Ok(Some(value)) if method == "DELETE" => HttpResponse::Accepted().json(value),
+        Ok(Some(value)) => HttpResponse::Ok().json(value),
+        // Hard-delete: no finalizers, resource removed immediately.
+        Ok(None) => HttpResponse::NoContent().finish(),
         Err(e) => kuiper_error_response(e),
     }
 }

@@ -1,12 +1,13 @@
 [workspace]
 resolver = "2"
 members = [
-    "kuiper-runtime-sdk",
+    "kuiper-types",
     "kuiper-runtime",
-    "kr",
+    "resource-server-runtime",
+    "resource-server-sdk",
     "resource-server",
-    "integration-tests",
-    "kuiper-coordinator"
+    "examples/vmc-control-plane",
+    "integration-tests"
 ]
 
 # NOTE: For FIPS Compliant tls
@@ -15,8 +16,11 @@ members = [
 # 
 
 [workspace.dependencies]
-kuiper-runtime-sdk = { path = "./kuiper-runtime-sdk" }
+kuiper-types = { path = "./kuiper-types" }
 kuiper-runtime = { path = "./kuiper-runtime" }
+resource-server-runtime = { path = "./resource-server-runtime" }
+resource-server-sdk = { path = "./resource-server-sdk" }
+resource-server = { path = "./resource-server" }
 
 # For Web Servers and Middleware
 actix-web = "4.13.0"
@@ -67,6 +71,7 @@ zip = "2.6.1"
 sha2 = "0.10"   # Or `blake3 = "1.4"` for faster hashing
 uuid = { version = "1.23.0", features = ["serde", "v4"] }
 vergen = { version = "8.3.2", features = ["build", "cargo", "git", "gitcl", "rustc", "si"] }
+base64 = "0.22"
 lazy_static = "1.5.0"
 walkdir = "2"
 dashmap = "6.1.0"
