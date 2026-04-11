@@ -6,7 +6,7 @@ members = [
     "resource-server-runtime",
     "resource-server-sdk",
     "resource-server",
-    "vmc-control-plane",
+    "examples/vmc-control-plane",
     "integration-tests"
 ]
 
