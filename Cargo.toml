@@ -6,6 +6,7 @@ members = [
     "resource-server-runtime",
     "resource-server-sdk",
     "resource-server",
+    "vmc-control-plane",
     "integration-tests"
 ]
 
@@ -19,6 +20,7 @@ kuiper-types = { path = "./kuiper-types" }
 kuiper-runtime = { path = "./kuiper-runtime" }
 resource-server-runtime = { path = "./resource-server-runtime" }
 resource-server-sdk = { path = "./resource-server-sdk" }
+resource-server = { path = "./resource-server" }
 
 # For Web Servers and Middleware
 actix-web = "4.13.0"
