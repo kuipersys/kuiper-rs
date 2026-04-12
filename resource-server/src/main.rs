@@ -6,6 +6,7 @@ use actix_web::middleware::Logger;
 use actix_web::{App, HttpServer};
 use dashmap::DashMap;
 use kuiper_runtime::data::file_system_store::FileSystemStore;
+use kuiper_runtime::data::TransactionalKeyValueStore;
 use kuiper_runtime::KuiperConfig;
 use resource_server::{
     commands::observer::{DeleteObserverCommand, SetObserverCommand},
@@ -24,8 +25,10 @@ async fn main() -> std::io::Result<()> {
     tracing::info!(">> Number of Threads: {}", count);
 
     let config = KuiperConfig::from_env();
-    let store = FileSystemStore::new(&config.store_path).unwrap();
-    let shared_store = Arc::new(tokio::sync::RwLock::new(store));
+
+    let shared_store: Arc<tokio::sync::RwLock<dyn TransactionalKeyValueStore>> =
+        build_store(&config).await;
+
     let subscribers: SubscriberMap = Arc::new(DashMap::new());
     let subscription_map: SubscriptionMap = Arc::new(DashMap::new());
 
@@ -48,6 +51,11 @@ async fn main() -> std::io::Result<()> {
         )),
     );
     let runtime = Arc::new(builder.build());
+
+    runtime
+        .initialize()
+        .await
+        .expect("Failed to initialize runtime — could not seed/load ResourceDefinitions");
 
     let port = 8080;
     let ip = "0.0.0.0";
@@ -84,4 +92,27 @@ async fn main() -> std::io::Result<()> {
     tracing::info!(">> Starting Server On {}:{}", ip, port);
     tracing::info!(">> Press Ctrl-C to stop the server.");
     server.run().await
+}
+
+// ── Store factory ─────────────────────────────────────────────────────────────
+
+async fn build_store(
+    config: &KuiperConfig,
+) -> Arc<tokio::sync::RwLock<dyn TransactionalKeyValueStore>> {
+    if let Some(conn_str) = &config.documentdb_connection_string {
+        use kuiper_runtime::data::DocumentDbStore;
+        tracing::warn!(
+            ">> Using DocumentDB persistent store (database: {})",
+            config.documentdb_database
+        );
+        let store = DocumentDbStore::new(conn_str, &config.documentdb_database)
+            .await
+            .expect("Failed to connect to DocumentDB — check KUIPER_DOCUMENTDB_CONNECTION_STRING");
+        return Arc::new(tokio::sync::RwLock::new(store));
+    }
+
+    tracing::warn!(">> Using FileSystem store (path: {})", config.store_path);
+    let store =
+        FileSystemStore::new(&config.store_path).expect("Failed to initialise FileSystem store");
+    Arc::new(tokio::sync::RwLock::new(store))
 }
