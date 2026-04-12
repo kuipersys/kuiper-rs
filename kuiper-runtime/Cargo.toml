@@ -22,6 +22,8 @@ serde_json.workspace = true
 uuid.workspace = true
 walkdir.workspace = true
 
+mongodb.workspace = true
+
 [build-dependencies]
 anyhow.workspace = true
 vergen.workspace = true
